@@ -145,33 +145,63 @@ def editar(id):
         if nova_foto:
             colaborador.foto = nova_foto
 
-        colaborador.nome = request.form.get('nome', '').strip()
-        colaborador.email = request.form.get('email', '').strip().lower()
-        colaborador.telefone = request.form.get('telefone', '').strip()
-        colaborador.cpf = request.form.get('cpf', '').strip()
-        colaborador.cargo = request.form.get('cargo', '').strip()
-        colaborador.senioridade = request.form.get('senioridade', '')
-        colaborador.area = request.form.get('area', '')
-        colaborador.regime = request.form.get('regime', '')
-        colaborador.cidade = request.form.get('cidade', '').strip()
-        colaborador.estado = request.form.get('estado', '')
-        colaborador.linkedin = request.form.get('linkedin', '').strip()
-        colaborador.bio = request.form.get('bio', '').strip()
-        colaborador.updated_at = datetime.utcnow()
+        # helper para limpar strings "None" herdadas de registros antigos
+        def _val(key, strip=True):
+            v = request.form.get(key, '') or ''
+            v = '' if v.strip().lower() == 'none' else v
+            return v.strip() if strip else v
 
-        data_nasc = request.form.get('data_nascimento')
+        colaborador.nome        = _val('nome')
+        colaborador.email       = _val('email').lower()
+        colaborador.telefone    = _val('telefone')
+        colaborador.cpf         = _val('cpf')
+        colaborador.cargo       = _val('cargo')
+        colaborador.senioridade = _val('senioridade', strip=False)
+        colaborador.area        = _val('area', strip=False)
+        colaborador.regime      = _val('regime', strip=False)
+        colaborador.cidade      = _val('cidade')
+        colaborador.estado      = _val('estado', strip=False)
+        colaborador.linkedin    = _val('linkedin')
+        colaborador.bio         = _val('bio')
+        colaborador.updated_at  = datetime.utcnow()
+
+        data_nasc = request.form.get('data_nascimento', '').strip()
         colaborador.data_nascimento = datetime.strptime(data_nasc, '%Y-%m-%d').date() if data_nasc else None
 
-        data_adm = request.form.get('data_admissao')
+        data_adm = request.form.get('data_admissao', '').strip()
         colaborador.data_admissao = datetime.strptime(data_adm, '%Y-%m-%d').date() if data_adm else None
 
-        try:
-            db.session.commit()
-            flash('Dados atualizados com sucesso!', 'success')
-            return redirect(url_for('colaboradores.detalhe', id=colaborador.id))
-        except Exception as e:
-            db.session.rollback()
-            flash('Erro ao atualizar. Verifique os dados.', 'danger')
+        # Validação mínima
+        if not colaborador.nome or not colaborador.email:
+            flash('Nome e e-mail são obrigatórios.', 'danger')
+        else:
+            try:
+                db.session.commit()
+                flash('Dados atualizados com sucesso!', 'success')
+                return redirect(url_for('colaboradores.detalhe', id=colaborador.id))
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f'Erro ao salvar colaborador id={id}: {e}')
+                # Re-aplica os valores do form para não perder o que o usuário digitou
+                colaborador.nome        = _val('nome')
+                colaborador.email       = _val('email').lower()
+                colaborador.telefone    = _val('telefone')
+                colaborador.cpf         = _val('cpf')
+                colaborador.cargo       = _val('cargo')
+                colaborador.senioridade = _val('senioridade', strip=False)
+                colaborador.area        = _val('area', strip=False)
+                colaborador.regime      = _val('regime', strip=False)
+                colaborador.cidade      = _val('cidade')
+                colaborador.estado      = _val('estado', strip=False)
+                colaborador.linkedin    = _val('linkedin')
+                colaborador.bio         = _val('bio')
+                flash(f'Erro ao salvar: {e}', 'danger')
+
+    # Limpa valores "None" string ao carregar o formulário
+    for field in ('telefone', 'cpf', 'cargo', 'cidade', 'linkedin', 'bio'):
+        val = getattr(colaborador, field, None)
+        if val and str(val).strip().lower() == 'none':
+            setattr(colaborador, field, '')
 
     return render_template('colaboradores/form.html', colaborador=colaborador,
                            areas=AREAS, senioridades=SENIORIDADES,
