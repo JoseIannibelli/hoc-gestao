@@ -50,6 +50,16 @@ def create_app(config_name='default'):
         from app.models.equipamento import Equipamento, AlocacaoEquipamento                  # noqa
         db.create_all()
 
+        # Bootstrap: cria admin automaticamente se não existir nenhum usuário
+        import os
+        if User.query.count() == 0:
+            email = os.environ.get('ADMIN_EMAIL', 'admin@hoc.com.br')
+            senha = os.environ.get('ADMIN_PASSWORD', 'hoc@2024')
+            admin = User(nome='Administrador', email=email, role='admin')
+            admin.set_password(senha)
+            db.session.add(admin)
+            db.session.commit()
+
     @app.cli.command('criar-admin')
     def criar_admin():
         """Cria o usuário administrador padrão (use apenas no primeiro deploy)."""
