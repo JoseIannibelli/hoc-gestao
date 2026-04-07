@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Equipe — HOC Gestão{% endblock %}
+{% block page_title %}Equipe / Perfis{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho da página -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <p class="text-muted mb-0" style="font-size:.875rem">
+      {{ colaboradores|length }} pessoa{{ 's' if colaboradores|length != 1 else '' }} encontrada{{ 's' if colaboradores|length != 1 else '' }}
+    </p>
+  </div>
+  {% if current_user.is_gestor() %}
+  <a href="{{ url_for('usuarios.novo') }}" class="btn btn-primary">
+    <i class="bi bi-person-plus me-1"></i> Novo usuário
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold mb-1">Buscar</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control" placeholder="Nome, cargo ou e-mail…"
+                 value="{{ busca }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold mb-1">Área</label>
+        <select name="area" class="form-select">
+          <option value="">Todas as áreas</option>
+          {% for val, label in areas %}
+          <option value="{{ val }}" {% if area_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold mb-1">Senioridade</label>
+        <select name="senioridade" class="form-select">
+          <option value="">Todas</option>
+          {% for val, label in senioridades %}
+          <option value="{{ val }}" {% if senioridade_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold mb-1">Status</label>
+        <select name="status" class="form-select">
+          <option value="ativo" {% if status_sel == 'ativo' %}selected{% endif %}>Ativos</option>
+          <option value="inativo" {% if status_sel == 'inativo' %}selected{% endif %}>Inativos</option>
+          <option value="todos" {% if status_sel == 'todos' %}selected{% endif %}>Todos</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Lista -->
+{% if colaboradores %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:50px"></th>
+          <th>Nome</th>
+          <th>Cargo / Área</th>
+          <th>Senioridade</th>
+          <th>Contato</th>
+          <th>Admissão</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in colaboradores %}
+        <tr>
+          <td>
+            <img src="{{ c.foto_url }}" class="avatar" alt="{{ c.nome }}">
+          </td>
+          <td>
+            <a href="{{ url_for('colaboradores.detalhe', id=c.id) }}"
+               class="fw-semibold text-decoration-none text-dark">{{ c.nome }}</a>
+          </td>
+          <td>
+            <span>{{ c.cargo or '—' }}</span><br>
+            <small class="text-muted">{{ c.area_display }}</small>
+          </td>
+          <td>
+            <span class="badge rounded-pill" style="background:#f1f5f9;color:#475569;font-weight:500">
+              {{ c.senioridade_display }}
+            </span>
+          </td>
+          <td>
+            <small>{{ c.email }}</small><br>
+            <small class="text-muted">{{ c.telefone or '' }}</small>
+          </td>
+          <td>
+            <small>
+              {% if c.data_admissao %}
+                {{ c.data_admissao.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </small>
+          </td>
+          <td>
+            <span class="badge rounded-pill px-2 {% if c.ativo %}pill-ativo{% else %}pill-inativo{% endif %}">
+              {{ 'Ativo' if c.ativo else 'Inativo' }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('colaboradores.detalhe', id=c.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="Ver detalhe">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if current_user.is_gestor() or current_user.is_lider() %}
+              <a href="{{ url_for('colaboradores.editar', id=c.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+              {% endif %}
+              {% if current_user.is_gestor() %}
+              <form method="POST" action="{{ url_for('colaboradores.toggle_ativo', id=c.id) }}"
+                    onsubmit="return confirm('Alterar status de {{ c.nome }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-{{ 'danger' if c.ativo else 'success' }}"
+                        title="{{ 'Desativar' if c.ativo else 'Ativar' }}">
+                  <i class="bi bi-{{ 'slash-circle' if c.ativo else 'check-circle' }}"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-people fs-1 d-block mb-3"></i>
+    <p class="mb-1">Nenhum colaborador encontrado.</p>
+    {% if busca or area_sel or senioridade_sel %}
+    <a href="{{ url_for('colaboradores.lista') }}" class="btn btn-sm btn-outline-secondary mt-2">
+      Limpar filtros
+    </a>
+    {% elif current_user.is_gestor() %}
+    <a href="{{ url_for('colaboradores.novo') }}" class="btn btn-primary mt-2">
+      <i class="bi bi-person-plus me-1"></i> Cadastrar colaborador
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

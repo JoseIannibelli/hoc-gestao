@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% block title %}Ponto — {{ colaborador.nome }}{% endblock %}
+{% block page_title %}Folha de Ponto — {{ colaborador.nome }} — {{ mes_nome }}/{{ ano }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.dia-card {
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  padding: .65rem;
+  font-size: .82rem;
+  transition: box-shadow .15s;
+}
+.dia-card.fds       { background: #f8fafc; color: #94a3b8; }
+.dia-card.completo  { border-color: #10B981; }
+.dia-card.incompleto{ border-color: #f59e0b; }
+.dia-card.falta     { border-color: #EF4444; background: #fff5f5; }
+.dia-card.feriado, .dia-card.ferias, .dia-card.folga { background: #f5f3ff; border-color: #8B5CF6; }
+.hora-pill {
+  display: inline-block;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: .74rem;
+  font-weight: 600;
+  color: #334155;
+}
+.saldo-pos { color: #10B981; font-weight: 700; }
+.saldo-neg { color: #EF4444; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Navegação de mês -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <a href="{{ url_for('ponto.detalhe_colaborador', colaborador_id=colaborador.id, ano=ano_ant, mes=mes_ant) }}"
+     class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+  <h5 class="fw-bold mb-0">{{ mes_nome }} / {{ ano }}</h5>
+  <a href="{{ url_for('ponto.detalhe_colaborador', colaborador_id=colaborador.id, ano=ano_prx, mes=mes_prx) }}"
+     class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+</div>
+
+<!-- Cabeçalho do colaborador -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-3">
+      <img src="{{ colaborador.foto_url }}" class="avatar-lg" alt="">
+      <div>
+        <h5 class="fw-bold mb-1">{{ colaborador.nome }}</h5>
+        <div class="text-muted small">{{ colaborador.cargo or '—' }} · {{ colaborador.area_display or '—' }}</div>
+        {% if fechamento %}
+        <span class="badge rounded-pill mt-1"
+              style="background:{{ fechamento.status_info.bg }};color:{{ fechamento.status_info.color }}">
+          {{ fechamento.status_info.label }}
+        </span>
+        {% if fechamento.observacao_colab %}
+        <div class="mt-2 small text-muted"><strong>Obs. colaborador:</strong> {{ fechamento.observacao_colab }}</div>
+        {% endif %}
+        {% if fechamento.observacao_gestor %}
+        <div class="small text-muted"><strong>Obs. gestor:</strong> {{ fechamento.observacao_gestor }}</div>
+        {% endif %}
+        {% else %}
+        <span class="badge rounded-pill mt-1" style="background:#f1f5f9;color:#94a3b8">Em aberto</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Totalizadores -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4 text-primary">{{ totais.total_horas_trab | int }}h</div>
+      <div class="text-muted small">Horas trabalhadas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4">{{ totais.total_dias_uteis }}</div>
+      <div class="text-muted small">Dias úteis</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-4 text-danger">{{ totais.total_faltas }}</div>
+      <div class="text-muted small">Faltas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center py-3">
+      {% set saldo = totais.saldo_banco_horas %}
+      {% set sh = saldo | abs | int %}
+      {% set sm = ((saldo | abs - sh) * 60) | int %}
+      <div class="fw-bold fs-4 {{ 'saldo-pos' if saldo >= 0 else 'saldo-neg' }}">
+        {{ '+' if saldo >= 0 else '-' }}{{ '%02d' % sh }}:{{ '%02d' % sm }}
+      </div>
+      <div class="text-muted small">Banco de horas</div>
+    </div>
+  </div>
+</div>
+
+<!-- Grade de dias -->
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-calendar3 me-2"></i>Registros do mês</div>
+  <div class="card-body">
+    <!-- Cabeçalho da semana -->
+    <div class="row g-2 mb-2 text-center" style="font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase">
+      <div class="col">SEG</div><div class="col">TER</div><div class="col">QUA</div>
+      <div class="col">QUI</div><div class="col">SEX</div>
+      <div class="col" style="color:#cbd5e1">SÁB</div>
+      <div class="col" style="color:#cbd5e1">DOM</div>
+    </div>
+
+    {% set primeiro_dia = dias[0].data.weekday() %}
+    <div class="row g-2">
+      {% for _ in range(primeiro_dia) %}
+      <div class="col"></div>
+      {% endfor %}
+
+      {% set col_atual = [primeiro_dia] %}
+      {% for item in dias %}
+      {% set d = item.data %}
+      {% set reg = item.registro %}
+      {% set fds = d.weekday() >= 5 %}
+
+      <div class="col">
+        <div class="dia-card
+          {% if fds %}fds
+          {% elif reg %}
+            {% if reg.tipo in ('falta','falta_just') %}falta
+            {% elif reg.tipo in ('feriado','ferias','folga','afastamento') %}feriado
+            {% elif reg.completo %}completo
+            {% else %}incompleto{% endif %}
+          {% elif not item.util %}fds
+          {% endif %}">
+          <div class="fw-bold mb-1">{{ d.day }}</div>
+          {% if not fds %}
+            {% if reg %}
+              {% if reg.tipo != 'normal' %}
+              <div class="text-truncate" style="font-size:.7rem;color:#7c3aed">{{ reg.tipo_display }}</div>
+              {% else %}
+              <div class="hora-pill mb-1">{{ reg.fmt_time(reg.entrada) }}</div>
+              <div class="hora-pill">{{ reg.fmt_time(reg.saida) }}</div>
+              {% if reg.horas_trabalhadas_decimal %}
+              <div class="mt-1 {{ 'saldo-pos' if reg.saldo_horas >= 0 else 'saldo-neg' }}" style="font-size:.7rem">
+                {{ '%+.1f' % reg.saldo_horas }}h
+              </div>
+              {% endif %}
+              {% endif %}
+            {% else %}
+            <div style="font-size:.7rem;color:#cbd5e1">— sem registro</div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      {% set col_atual = [col_atual[0] + 1] %}
+      {% if col_atual[0] % 7 == 0 and not loop.last %}
+      </div><div class="row g-2 mt-1">
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Tabela detalhada dos dias úteis -->
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-table me-2"></i>Detalhe diário</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Entrada</th>
+          <th>Início almoço</th>
+          <th>Retorno almoço</th>
+          <th>Saída</th>
+          <th>Horas</th>
+          <th>Saldo</th>
+          <th>Tipo</th>
+          <th>Obs.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in dias %}
+        {% if item.util %}
+        {% set d = item.data %}
+        {% set reg = item.registro %}
+        <tr>
+          <td class="text-nowrap">
+            <span class="fw-semibold">{{ d.strftime('%d/%m') }}</span>
+            <small class="text-muted ms-1">{{ ['seg','ter','qua','qui','sex','sáb','dom'][d.weekday()] }}</small>
+          </td>
+          {% if reg %}
+            <td>{{ reg.fmt_time(reg.entrada) }}</td>
+            <td>{{ reg.fmt_time(reg.inicio_almoco) }}</td>
+            <td>{{ reg.fmt_time(reg.retorno_almoco) }}</td>
+            <td>{{ reg.fmt_time(reg.saida) }}</td>
+            <td>
+              {% if reg.horas_trabalhadas_decimal %}
+              {{ '%g' % reg.horas_trabalhadas_decimal }}h
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if reg.tipo not in ('feriado','ferias','folga') %}
+              <span class="{{ 'saldo-pos' if reg.saldo_horas >= 0 else 'saldo-neg' }}">
+                {{ '%+.1f' % reg.saldo_horas }}h
+              </span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="badge rounded-pill"
+                style="background:#f1f5f9;color:#475569;font-size:.74rem">
+                {{ reg.tipo_display }}
+              </span>
+            </td>
+            <td><small class="text-muted">{{ reg.observacao or '—' }}</small></td>
+          {% else %}
+            <td colspan="6" class="text-danger small">Sem registro</td>
+            <td>—</td>
+            <td>—</td>
+          {% endif %}
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Botão voltar -->
+<a href="{{ url_for('ponto.visao_geral', ano=ano, mes=mes) }}"
+   class="btn btn-outline-secondary">
+  <i class="bi bi-arrow-left me-1"></i>Voltar à visão geral
+</a>
+
+{% endblock %}

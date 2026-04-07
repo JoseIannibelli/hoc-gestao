@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Ver Avaliação — HOC Gestão{% endblock %}
+{% block page_title %}Resultado da Avaliação{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('avaliacoes.detalhe_ciclo', id=avaliacao.ciclo_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar ao ciclo
+  </a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card text-center p-4 mb-3">
+      <img src="{{ avaliacao.avaliado.foto_url }}" class="avatar-lg mx-auto mb-3" alt="">
+      <h5 class="fw-bold">{{ avaliacao.avaliado.nome }}</h5>
+      <p class="text-muted small mb-2">{{ avaliacao.avaliado.cargo or '—' }}</p>
+      <span class="badge rounded-pill" style="background:#fee2e2;color:#991b1b">
+        {{ avaliacao.tipo_display }}
+      </span>
+      {% if avaliacao.media %}
+      <div class="mt-4">
+        <div class="display-4 fw-bold" style="color:{% if avaliacao.media >= 4 %}#10B981{% elif avaliacao.media >= 3 %}#f59e0b{% else %}#EF4444{% endif %}">
+          {{ avaliacao.media }}
+        </div>
+        <div class="text-muted small">Nota média / 5</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-bar-chart me-2" style="color:#EF4444"></i>Critérios</div>
+      <div class="card-body">
+        {% for campo, label in criterios %}
+        {% set nota = avaliacao | attr(campo) %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="small fw-semibold">{{ label }}</span>
+            <span class="small fw-bold">{{ nota or '—' }} / 5</span>
+          </div>
+          <div class="progress" style="height:8px">
+            <div class="progress-bar" style="background:#EF4444;width:{{ (nota or 0) * 20 }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if avaliacao.pontos_fortes or avaliacao.pontos_melhoria or avaliacao.comentarios %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-chat-text me-2" style="color:#EF4444"></i>Feedback</div>
+      <div class="card-body">
+        {% if avaliacao.pontos_fortes %}
+        <div class="mb-3">
+          <div class="fw-semibold small text-success mb-1"><i class="bi bi-check-circle me-1"></i>Pontos fortes</div>
+          <p class="text-muted small mb-0">{{ avaliacao.pontos_fortes }}</p>
+        </div>
+        {% endif %}
+        {% if avaliacao.pontos_melhoria %}
+        <div class="mb-3">
+          <div class="fw-semibold small text-warning mb-1"><i class="bi bi-arrow-up-circle me-1"></i>Pontos de melhoria</div>
+          <p class="text-muted small mb-0">{{ avaliacao.pontos_melhoria }}</p>
+        </div>
+        {% endif %}
+        {% if avaliacao.comentarios %}
+        <div>
+          <div class="fw-semibold small text-muted mb-1"><i class="bi bi-chat me-1"></i>Comentários</div>
+          <p class="text-muted small mb-0">{{ avaliacao.comentarios }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if ciclo else 'Novo' }} Ciclo — HOC Gestão{% endblock %}
+{% block page_title %}{{ 'Editar Ciclo' if ciclo else 'Novo Ciclo de Avaliação' }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('avaliacoes.lista_ciclos') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar
+  </a>
+</div>
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <form method="POST" novalidate id="form-ciclo">
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-bar-chart me-2" style="color:#EF4444"></i>Dados do Ciclo
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Nome <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control"
+                     value="{{ ciclo.nome if ciclo else '' }}"
+                     placeholder="Ex.: 2025 — 1º Semestre" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Data de início</label>
+              <input type="date" name="data_inicio" class="form-control"
+                     value="{{ ciclo.data_inicio.strftime('%Y-%m-%d') if ciclo and ciclo.data_inicio else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Data de encerramento</label>
+              <input type="date" name="data_fim" class="form-control"
+                     value="{{ ciclo.data_fim.strftime('%Y-%m-%d') if ciclo and ciclo.data_fim else '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Status</label>
+              <select name="status" class="form-select">
+                {% for val, label, bg, color in status_ciclo %}
+                <option value="{{ val }}"
+                  {% if (ciclo and ciclo.status == val) or (not ciclo and val == 'aberto') %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibond small">Descrição</label>
+              <textarea name="descricao" class="form-control" rows="3"
+                        placeholder="Objetivos deste ciclo de avaliação…">{{ ciclo.descricao if ciclo else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ url_for('avaliacoes.lista_ciclos') }}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn px-4" style="background:#EF4444;color:white">
+            <i class="bi bi-check-lg me-1"></i> {{ 'Salvar' if ciclo else 'Criar ciclo' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

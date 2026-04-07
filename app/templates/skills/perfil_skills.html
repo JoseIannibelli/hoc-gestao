@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% block title %}Skills de {{ colaborador.nome }} — HOC Gestão{% endblock %}
+{% block page_title %}Competências de {{ colaborador.nome }}{% endblock %}
+
+{% block content %}
+<div class="mb-3 d-flex gap-2">
+  <a href="{{ url_for('colaboradores.detalhe', id=colaborador.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar ao perfil
+  </a>
+</div>
+
+<div class="row g-3">
+
+  <!-- Skills atuais -->
+  <div class="col-lg-8">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-stars me-2" style="color:#10B981"></i>Habilidades</span>
+        <span class="badge rounded-pill" style="background:#d1fae5;color:#065f46">
+          {{ colab_skills|length }} skills
+        </span>
+      </div>
+
+      {% if colab_skills %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Skill</th>
+              <th>Categoria</th>
+              <th>Nível</th>
+              <th>Experiência</th>
+              <th>Destaque</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cs in colab_skills %}
+            <tr>
+              <td class="fw-semibold">
+                {{ cs.skill.nome }}
+                {% if cs.principal %}
+                <i class="bi bi-star-fill ms-1" style="color:#f59e0b;font-size:.75rem" title="Skill em destaque"></i>
+                {% endif %}
+              </td>
+              <td><small class="text-muted">{{ cs.skill.categoria_display }}</small></td>
+              <td>
+                {% set cores = {'basico':'#dbeafe:#1d4ed8', 'intermediario':'#fef9c3:#854d0e', 'avancado':'#d1fae5:#065f46', 'especialista':'#ede9fe:#6d28d9'} %}
+                {% set cor = cores.get(cs.nivel, '#f1f5f9:#475569').split(':') %}
+                <span class="badge rounded-pill px-2"
+                      style="background:{{ cor[0] }};color:{{ cor[1] }}">
+                  {{ cs.nivel_display }}
+                </span>
+              </td>
+              <td>
+                <small>{{ cs.anos_experiencia | int if cs.anos_experiencia == cs.anos_experiencia | int else cs.anos_experiencia }} ano{{ 's' if cs.anos_experiencia != 1 else '' }}</small>
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('skills.editar_colab_skill', cs_id=cs.id) }}" class="d-inline">
+                  <input type="hidden" name="nivel" value="{{ cs.nivel }}">
+                  <input type="hidden" name="anos_experiencia" value="{{ cs.anos_experiencia }}">
+                  <input type="hidden" name="principal" value="{{ '0' if cs.principal else '1' }}">
+                  <button type="submit" class="btn btn-sm btn-link p-0" title="{{ 'Remover destaque' if cs.principal else 'Marcar como destaque' }}">
+                    <i class="bi bi-star{{ '-fill' if cs.principal else '' }}" style="color:{{ '#f59e0b' if cs.principal else '#94a3b8' }}"></i>
+                  </button>
+                </form>
+              </td>
+              <td>
+                <!-- Modal editar -->
+                <button class="btn btn-sm btn-outline-primary me-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalEdit{{ cs.id }}" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="POST" action="{{ url_for('skills.remover_skill', cs_id=cs.id) }}" class="d-inline"
+                      onsubmit="return confirm('Remover {{ cs.skill.nome }}?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+
+            <!-- Modal editar nível -->
+            <div class="modal fade" id="modalEdit{{ cs.id }}" tabindex="-1">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <form method="POST" action="{{ url_for('skills.editar_colab_skill', cs_id=cs.id) }}">
+                    <div class="modal-header">
+                      <h6 class="modal-title">{{ cs.skill.nome }}</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nível</label>
+                        <select name="nivel" class="form-select">
+                          {% for val, label, _ in niveis %}
+                          <option value="{{ val }}" {% if cs.nivel == val %}selected{% endif %}>{{ label }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label small fw-semibold">Anos de experiência</label>
+                        <input type="number" name="anos_experiencia" class="form-control"
+                               value="{{ cs.anos_experiencia }}" min="0" max="40" step="0.5">
+                      </div>
+                      <input type="hidden" name="principal" value="{{ '1' if cs.principal else '0' }}">
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-sm btn-success">Salvar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-stars fs-2 d-block mb-2"></i>
+        Nenhuma skill cadastrada ainda.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Certificações -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-patch-check me-2" style="color:#3B82F6"></i>Certificações e Cursos</span>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCert">
+          <i class="bi bi-plus-lg me-1"></i> Adicionar
+        </button>
+      </div>
+
+      {% if colaborador.certificacoes %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Nome</th><th>Instituição</th><th>Obtido</th><th>Validade</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for cert in colaborador.certificacoes %}
+            <tr>
+              <td>
+                {% if cert.url %}
+                <a href="{{ cert.url }}" target="_blank" class="fw-semibold text-decoration-none">
+                  {{ cert.nome }} <i class="bi bi-box-arrow-up-right" style="font-size:.7rem"></i>
+                </a>
+                {% else %}
+                <span class="fw-semibold">{{ cert.nome }}</span>
+                {% endif %}
+              </td>
+              <td><small>{{ cert.instituicao or '—' }}</small></td>
+              <td><small>{{ cert.data_obtencao.strftime('%m/%Y') if cert.data_obtencao else '—' }}</small></td>
+              <td>
+                {% if cert.data_expiracao %}
+                  <span class="badge rounded-pill {% if cert.expirado %}pill-inativo{% else %}pill-ativo{% endif %}">
+                    {{ cert.data_expiracao.strftime('%m/%Y') }}
+                    {{ '· Expirado' if cert.expirado else '' }}
+                  </span>
+                {% else %}
+                  <small class="text-muted">Sem validade</small>
+                {% endif %}
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('skills.remover_certificacao', cert_id=cert.id) }}"
+                      onsubmit="return confirm('Remover certificação?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-patch-check fs-2 d-block mb-2"></i>
+        Nenhuma certificação cadastrada.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Painel lateral: adicionar skill -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-plus-circle me-2" style="color:#10B981"></i>Adicionar Skill
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('skills.adicionar_skill', colab_id=colaborador.id) }}">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Skill</label>
+            <select name="skill_id" class="form-select" required>
+              <option value="">Selecione…</option>
+              {% for s in skills_disp %}
+              <option value="{{ s.id }}">{{ s.nome }} ({{ s.categoria_display }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Nível</label>
+            <select name="nivel" class="form-select">
+              {% for val, label, _ in niveis %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Anos de experiência</label>
+            <input type="number" name="anos_experiencia" class="form-control"
+                   value="0" min="0" max="40" step="0.5">
+          </div>
+          <button type="submit" class="btn btn-success w-100">
+            <i class="bi bi-plus-lg me-1"></i> Adicionar
+          </button>
+        </form>
+        {% if not skills_disp %}
+        <p class="text-muted small text-center mt-3">Todas as skills do catálogo já foram adicionadas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nova certificação -->
+<div class="modal fade" id="modalCert" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('skills.nova_certificacao', colab_id=colaborador.id) }}">
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-patch-check me-2"></i>Nova Certificação</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Nome <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control" placeholder="Ex.: AWS Solutions Architect" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Instituição</label>
+              <input type="text" name="instituicao" class="form-control" placeholder="Ex.: Amazon, Microsoft, Coursera…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Data de obtenção</label>
+              <input type="date" name="data_obtencao" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Validade</label>
+              <input type="date" name="data_expiracao" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Link do certificado</label>
+              <input type="url" name="url" class="form-control" placeholder="https://…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

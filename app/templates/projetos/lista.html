@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Projetos — HOC Gestão{% endblock %}
+{% block page_title %}Alocação em Projetos{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem">
+    {{ projetos|length }} projeto{{ 's' if projetos|length != 1 else '' }}
+  </p>
+  {% if current_user.is_lider() %}
+  <a href="{{ url_for('projetos.novo') }}" class="btn btn-primary" style="background:#8B5CF6;border-color:#8B5CF6">
+    <i class="bi bi-plus-lg me-1"></i> Novo projeto
+  </a>
+  {% endif %}
+</div>
+
+<!-- Cards de status -->
+<div class="row g-3 mb-4">
+  {% for val, label, bg, color in status_projeto %}
+  <div class="col">
+    <a href="{{ url_for('projetos.lista', status=val) }}"
+       class="card text-decoration-none h-100 {{ 'border-primary' if status_sel == val else '' }}">
+      <div class="card-body text-center py-3">
+        <div class="fw-bold fs-4" style="color:{{ color }}">{{ contadores.get(val, 0) }}</div>
+        <div class="small" style="color:{{ color }}">{{ label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control"
+                 placeholder="Nome ou cliente…" value="{{ busca }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select">
+          <option value="">Todos os status</option>
+          {% for val, label, _, __ in status_projeto %}
+          <option value="{{ val }}" {% if status_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn w-100" style="background:#8B5CF6;color:white">Filtrar</button>
+      </div>
+      {% if busca or status_sel %}
+      <div class="col-md-1">
+        <a href="{{ url_for('projetos.lista') }}" class="btn btn-outline-secondary w-100"><i class="bi bi-x"></i></a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Lista -->
+{% if projetos %}
+<div class="row g-3">
+  {% for p in projetos %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <h6 class="fw-bold mb-0">{{ p.nome }}</h6>
+          <span class="badge rounded-pill ms-2 flex-shrink-0"
+                style="background:{{ p.status_info.bg }};color:{{ p.status_info.color }}">
+            {{ p.status_info.label }}
+          </span>
+        </div>
+        {% if p.cliente %}
+        <div class="text-muted small mb-2">
+          <i class="bi bi-building me-1"></i>{{ p.cliente }}
+        </div>
+        {% endif %}
+        {% if p.descricao %}
+        <p class="text-muted small mb-3" style="line-height:1.5">
+          {{ p.descricao[:100] }}{{ '…' if p.descricao|length > 100 else '' }}
+        </p>
+        {% endif %}
+
+        <div class="d-flex gap-3 mb-3" style="font-size:.8rem;color:#64748b">
+          <span><i class="bi bi-people me-1"></i>{{ p.total_colaboradores }} alocado{{ 's' if p.total_colaboradores != 1 else '' }}</span>
+          {% if p.data_inicio %}
+          <span><i class="bi bi-calendar me-1"></i>{{ p.data_inicio.strftime('%d/%m/%Y') }}</span>
+          {% endif %}
+        </div>
+
+        {% if p.lider %}
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <img src="{{ p.lider.foto_url }}" class="avatar" style="width:28px;height:28px" alt="">
+          <small class="text-muted">Líder: {{ p.lider.nome }}</small>
+        </div>
+        {% endif %}
+
+        <!-- Progresso da timeline -->
+        {% if p.data_inicio and p.data_fim_prevista %}
+        {% set hoje = [] %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:.72rem;color:#94a3b8">
+            <span>{{ p.data_inicio.strftime('%d/%m/%Y') }}</span>
+            <span>{{ p.data_fim_prevista.strftime('%d/%m/%Y') }}</span>
+          </div>
+          <div class="progress" style="height:5px">
+            <div class="progress-bar" style="background:#8B5CF6;width:50%"></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer bg-white border-top-0 pt-0">
+        <a href="{{ url_for('projetos.detalhe', id=p.id) }}"
+           class="btn btn-sm w-100" style="background:#ede9fe;color:#6d28d9;border:none">
+          Ver projeto <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-kanban fs-1 d-block mb-3"></i>
+    <p>Nenhum projeto encontrado.</p>
+    {% if current_user.is_lider() %}
+    <a href="{{ url_for('projetos.novo') }}" class="btn mt-1" style="background:#8B5CF6;color:white">
+      <i class="bi bi-plus-lg me-1"></i> Criar projeto
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

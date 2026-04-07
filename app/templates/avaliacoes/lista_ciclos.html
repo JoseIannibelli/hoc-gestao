@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Avaliações — HOC Gestão{% endblock %}
+{% block page_title %}Avaliação de Desempenho{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem">{{ ciclos|length }} ciclo{{ 's' if ciclos|length != 1 else '' }}</p>
+  <div class="d-flex gap-2">
+    {% if current_user.colaborador_id %}
+    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalAutoav">
+      <i class="bi bi-person-check me-1"></i> Me autoavaliar
+    </button>
+    {% endif %}
+    {% if current_user.is_gestor() %}
+    <a href="{{ url_for('avaliacoes.novo_ciclo') }}" class="btn btn-danger">
+      <i class="bi bi-plus-lg me-1"></i> Novo ciclo
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if ciclos %}
+<div class="row g-3">
+  {% for ciclo in ciclos %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="fw-bold mb-0">{{ ciclo.nome }}</h6>
+          <span class="badge rounded-pill ms-2"
+                style="background:{{ ciclo.status_info.bg }};color:{{ ciclo.status_info.color }}">
+            {{ ciclo.status_info.label }}
+          </span>
+        </div>
+        {% if ciclo.descricao %}
+        <p class="text-muted small mb-3">{{ ciclo.descricao[:80] }}{{ '…' if ciclo.descricao|length > 80 else '' }}</p>
+        {% endif %}
+
+        <div class="d-flex gap-3 mb-3" style="font-size:.8rem;color:#64748b">
+          {% if ciclo.data_inicio %}
+          <span><i class="bi bi-calendar me-1"></i>{{ ciclo.data_inicio.strftime('%d/%m/%Y') }}</span>
+          {% endif %}
+          {% if ciclo.data_fim %}
+          <span><i class="bi bi-calendar-check me-1"></i>{{ ciclo.data_fim.strftime('%d/%m/%Y') }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Progresso -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:.75rem;color:#94a3b8">
+            <span>{{ ciclo.total_enviadas }} enviadas</span>
+            <span>{{ ciclo.total_avaliacoes }} total</span>
+          </div>
+          <div class="progress" style="height:5px">
+            {% set pct = (ciclo.total_enviadas / ciclo.total_avaliacoes * 100) | int if ciclo.total_avaliacoes > 0 else 0 %}
+            <div class="progress-bar" style="background:#EF4444;width:{{ pct }}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-white border-top-0 pt-0">
+        <a href="{{ url_for('avaliacoes.detalhe_ciclo', id=ciclo.id) }}"
+           class="btn btn-sm w-100" style="background:#fee2e2;color:#991b1b;border:none">
+          Ver ciclo <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-bar-chart fs-1 d-block mb-3"></i>
+    <p>Nenhum ciclo de avaliação criado.</p>
+    {% if current_user.is_gestor() %}
+    <a href="{{ url_for('avaliacoes.novo_ciclo') }}" class="btn mt-1" style="background:#EF4444;color:white">
+      <i class="bi bi-plus-lg me-1"></i> Criar ciclo
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal autoavaliação -->
+{% if current_user.colaborador_id %}
+<div class="modal fade" id="modalAutoav" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('avaliacoes.autoavaliar') }}">
+        <div class="modal-header">
+          <h6 class="modal-title">Autoavaliação</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label small fw-semibold">Selecione o ciclo</label>
+          <select name="ciclo_id" class="form-select" required>
+            <option value="">— Selecione —</option>
+            {% for c in ciclos if c.status != 'fechado' %}
+            <option value="{{ c.id }}">{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-danger">Iniciar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

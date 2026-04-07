@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Ponto — Hoje{% endblock %}
+{% block page_title %}Registrar Ponto{% endblock %}
+
+{% block extra_css %}
+<style>
+.data-destaque {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+}
+.dia-semana {
+  font-size: 1rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.time-input-group label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: .4rem;
+}
+.time-input-group input[type=time] {
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  padding: .6rem .5rem;
+  color: #1e293b;
+}
+.time-input-group input[type=time]:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+.saldo-pos { color: #10B981; font-weight: 700; }
+.saldo-neg { color: #EF4444; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+
+    <!-- Data de hoje -->
+    <div class="card mb-4">
+      <div class="card-body text-center py-4">
+        {% set dias_sem = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'] %}
+        <div class="dia-semana mb-1">{{ dias_sem[hoje.weekday()] }}</div>
+        <div class="data-destaque">{{ hoje.strftime('%d') }}</div>
+        <div class="text-muted mt-1">{{ mes_nome_atual }} de {{ hoje.year }}</div>
+
+        {% if registro and registro.completo %}
+        <div class="mt-3">
+          {% set h = registro.horas_trabalhadas_decimal | int %}
+          {% set m = ((registro.horas_trabalhadas_decimal - h) * 60) | int %}
+          <span class="badge bg-success fs-6 px-3 py-2">
+            <i class="bi bi-check-circle me-1"></i>
+            {{ '%02d' % h }}h{{ '%02d' % m }} trabalhadas
+          </span>
+          <div class="mt-2 {{ 'saldo-pos' if registro.saldo_horas >= 0 else 'saldo-neg' }}">
+            {{ '%+.1f' % registro.saldo_horas }}h em relação à jornada padrão
+          </div>
+        </div>
+        {% elif registro %}
+        <div class="mt-3">
+          <span class="badge bg-warning text-dark">
+            <i class="bi bi-exclamation-triangle me-1"></i>Registro incompleto
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Bloqueado -->
+    {% if bloqueado %}
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+      <i class="bi bi-lock-fill fs-5"></i>
+      <div>
+        A folha de <strong>{{ mes_nome_atual }}/{{ hoje.year }}</strong> está bloqueada para edição direta.
+        {% if fechamento %}({{ fechamento.status_info.label }}){% endif %}
+        <br>
+        <a href="{{ url_for('ponto.correcoes') }}" class="fw-semibold">
+          Use "Solicitar Correção" para ajustes.
+        </a>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Formulário de registro -->
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock me-2 text-primary"></i>
+        {% if registro %}Atualizar marcações de hoje{% else %}Registrar marcações de hoje{% endif %}
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('ponto.registrar_hoje') }}">
+
+          <!-- Tipo do dia -->
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Tipo do dia</label>
+            <select name="tipo" id="campo-tipo" class="form-select" onchange="toggleHorarios(this.value)">
+              {% for val, label in tipos_ocorrencia %}
+              <option value="{{ val }}" {{ 'selected' if registro and registro.tipo == val else '' }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Horários (ocultos p/ ocorrências sem trabalho) -->
+          <div id="div-horarios">
+            <div class="row g-3 mb-4">
+              <div class="col-6 time-input-group">
+                <label>Entrada</label>
+                <input type="time" name="entrada" class="form-control"
+                       value="{{ registro.entrada.strftime('%H:%M') if registro and registro.entrada else '' }}">
+              </div>
+              <div class="col-6 time-input-group">
+                <label>Início almoço</label>
+                <input type="time" name="inicio_almoco" class="form-control"
+                       value="{{ registro.inicio_almoco.strftime('%H:%M') if registro and registro.inicio_almoco else '' }}">
+              </div>
+              <div class="col-6 time-input-group">
+                <label>Retorno almoço</label>
+                <input type="time" name="retorno_almoco" class="form-control"
+                       value="{{ registro.retorno_almoco.strftime('%H:%M') if registro and registro.retorno_almoco else '' }}">
+              </div>
+              <div class="col-6 time-input-group">
+                <label>Saída</label>
+                <input type="time" name="saida" class="form-control"
+                       value="{{ registro.saida.strftime('%H:%M') if registro and registro.saida else '' }}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Observação -->
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Observação</label>
+            <input type="text" name="observacao" class="form-control"
+                   placeholder="Ex.: Home office, cliente externo…"
+                   value="{{ registro.observacao if registro and registro.observacao else '' }}">
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+            <i class="bi bi-check-lg me-2"></i>
+            {{ 'Atualizar registro' if registro else 'Salvar registro' }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Atalhos -->
+    <div class="d-flex gap-2 mt-3">
+      <a href="{{ url_for('ponto.consultar') }}" class="btn btn-outline-secondary flex-fill">
+        <i class="bi bi-calendar3 me-1"></i> Ver folha do mês
+      </a>
+      <a href="{{ url_for('ponto.correcoes') }}" class="btn btn-outline-warning flex-fill">
+        <i class="bi bi-pencil-square me-1"></i> Solicitar correção
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleHorarios(tipo) {
+  const mostrar = ['normal', 'meio_periodo'].includes(tipo);
+  document.getElementById('div-horarios').style.display = mostrar ? 'block' : 'none';
+}
+// Inicializa com o valor atual
+toggleHorarios(document.getElementById('campo-tipo').value);
+</script>
+{% endblock %}

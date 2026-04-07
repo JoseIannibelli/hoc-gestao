@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-laptop me-2"></i>{{ titulo }}
+      </div>
+      <div class="card-body">
+        <form method="POST" class="needs-validation" novalidate>
+
+          <div class="row g-3 mb-4">
+            <!-- Tipo -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">
+                Tipo <span class="text-danger">*</span>
+              </label>
+              <select name="tipo" class="form-select" required>
+                {% for val, label in tipos %}
+                <option value="{{ val }}"
+                  {{ 'selected' if equipamento and equipamento.tipo == val else
+                     ('selected' if not equipamento and val == 'notebook' else '') }}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Marca -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">Marca</label>
+              <input type="text" name="marca" class="form-control"
+                     placeholder="Ex.: Dell, Apple, Lenovo"
+                     value="{{ equipamento.marca if equipamento else '' }}">
+            </div>
+
+            <!-- Modelo -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">Modelo</label>
+              <input type="text" name="modelo" class="form-control"
+                     placeholder="Ex.: Inspiron 15, MacBook Pro"
+                     value="{{ equipamento.modelo if equipamento else '' }}">
+            </div>
+
+            <!-- Número de série -->
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Número de série</label>
+              <input type="text" name="numero_serie" class="form-control"
+                     placeholder="S/N do fabricante"
+                     value="{{ equipamento.numero_serie if equipamento else '' }}">
+            </div>
+
+            <!-- Patrimônio -->
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-semibold">Número de patrimônio</label>
+              <input type="text" name="numero_patrimonio" class="form-control"
+                     placeholder="Etiqueta de patrimônio interno"
+                     value="{{ equipamento.numero_patrimonio if equipamento else '' }}">
+            </div>
+
+            <!-- Valor -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">Valor de aquisição (R$)</label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="text" name="valor" class="form-control"
+                       placeholder="0,00"
+                       value="{{ ('%.2f' % equipamento.valor) | replace('.', ',') if equipamento and equipamento.valor else '' }}">
+              </div>
+            </div>
+
+            <!-- Data de aquisição -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">Data de aquisição</label>
+              <input type="date" name="data_aquisicao" class="form-control"
+                     value="{{ equipamento.data_aquisicao.strftime('%Y-%m-%d') if equipamento and equipamento.data_aquisicao else '' }}">
+            </div>
+
+            <!-- Status (apenas na edição) -->
+            {% if equipamento and status_list %}
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold">Status</label>
+              <select name="status" class="form-select">
+                {% for s in status_list %}
+                <option value="{{ s[0] }}"
+                  {{ 'selected' if equipamento.status == s[0] }}>
+                  {{ s[1] }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="form-text text-warning small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Altere o status somente para manutenção ou descarte.
+                Alocações são gerenciadas pelo detalhe do equipamento.
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Descrição / Acessórios -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Descrição / Acessórios inclusos</label>
+              <textarea name="descricao" class="form-control" rows="3"
+                        placeholder="Ex.: Carregador 65W, capa protetora, mouse sem fio…">{{ equipamento.descricao if equipamento else '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"
+                    onclick="this.form.classList.add('was-validated')">
+              <i class="bi bi-check-lg me-1"></i>
+              {{ 'Salvar alterações' if equipamento else 'Cadastrar equipamento' }}
+            </button>
+            <a href="{{ url_for('equipamentos.detalhe', id=equipamento.id) if equipamento else url_for('equipamentos.lista') }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

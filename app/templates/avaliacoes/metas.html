@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Metas e PDI — {{ colaborador.nome }}{% endblock %}
+{% block page_title %}Metas e PDI — {{ colaborador.nome }}{% endblock %}
+
+{% block content %}
+<div class="mb-3 d-flex gap-2">
+  <a href="{{ url_for('colaboradores.detalhe', id=colaborador.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Perfil
+  </a>
+  <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalNovaMeta">
+    <i class="bi bi-plus-lg me-1"></i> Nova meta / PDI
+  </button>
+</div>
+
+<!-- Resumo -->
+{% set pendentes    = metas | selectattr('status', 'equalto', 'pendente')     | list %}
+{% set em_andamento = metas | selectattr('status', 'equalto', 'em_andamento') | list %}
+{% set concluidas   = metas | selectattr('status', 'equalto', 'concluida')    | list %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-3 text-warning">{{ pendentes|length }}</div>
+      <div class="text-muted small">Pendentes</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-3" style="color:#3B82F6">{{ em_andamento|length }}</div>
+      <div class="text-muted small">Em andamento</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center py-3">
+      <div class="fw-bold fs-3 text-success">{{ concluidas|length }}</div>
+      <div class="text-muted small">Concluídas</div>
+    </div>
+  </div>
+</div>
+
+{% if metas %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Título</th><th>Tipo</th><th>Prazo</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for meta in metas %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ meta.titulo }}</div>
+            {% if meta.descricao %}
+            <small class="text-muted">{{ meta.descricao[:60] }}{{ '…' if meta.descricao|length > 60 else '' }}</small>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge rounded-pill" style="background:{% if meta.tipo == 'pdi' %}#ede9fe;color:#6d28d9{% else %}#dbeafe;color:#1d4ed8{% endif %}">
+              {{ meta.tipo_display }}
+            </span>
+          </td>
+          <td>
+            <small>{{ meta.prazo.strftime('%d/%m/%Y') if meta.prazo else '—' }}</small>
+          </td>
+          <td>
+            <span class="badge rounded-pill"
+                  style="background:{{ meta.status_info.bg }};color:{{ meta.status_info.color }}">
+              {{ meta.status_info.label }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <!-- Alterar status -->
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                  Status
+                </button>
+                <ul class="dropdown-menu">
+                  {% for val, label, bg, color in status_meta %}
+                  <li>
+                    <form method="POST" action="{{ url_for('avaliacoes.atualizar_status_meta', meta_id=meta.id) }}">
+                      <input type="hidden" name="status" value="{{ val }}">
+                      <button type="submit" class="dropdown-item">{{ label }}</button>
+                    </form>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% if current_user.is_lider() %}
+              <form method="POST" action="{{ url_for('avaliacoes.excluir_meta', meta_id=meta.id) }}"
+                    onsubmit="return confirm('Excluir esta meta?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-bullseye fs-1 d-block mb-3"></i>
+    <p>Nenhuma meta ou PDI cadastrado.</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal nova meta -->
+<div class="modal fade" id="modalNovaMeta" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('avaliacoes.nova_meta', colab_id=colaborador.id) }}">
+        <div class="modal-header">
+          <h6 class="modal-title"><i class="bi bi-bullseye me-2"></i>Nova Meta / PDI</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Título <span class="text-danger">*</span></label>
+              <input type="text" name="titulo" class="form-control"
+                     placeholder="Ex.: Obter certificação AWS" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Tipo</label>
+              <select name="tipo" class="form-select">
+                {% for val, label in tipos_meta %}
+                <option value="{{ val }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Prazo</label>
+              <input type="date" name="prazo" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Ciclo (opcional)</label>
+              <select name="ciclo_id" class="form-select">
+                <option value="">— Sem ciclo vinculado —</option>
+                {% for c in ciclos %}
+                <option value="{{ c.id }}">{{ c.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Descrição</label>
+              <textarea name="descricao" class="form-control" rows="3"
+                        placeholder="Detalhe o objetivo…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

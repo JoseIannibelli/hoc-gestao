@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Avaliação — {{ avaliacao.avaliado.nome }}{% endblock %}
+{% block page_title %}{{ avaliacao.tipo_display }} — {{ avaliacao.avaliado.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.star-rating { display: flex; gap: 4px; flex-direction: row-reverse; justify-content: flex-end; }
+.star-rating input { display: none; }
+.star-rating label {
+  font-size: 1.5rem; color: #cbd5e1; cursor: pointer; transition: color .15s;
+}
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label { color: #f59e0b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('avaliacoes.detalhe_ciclo', id=avaliacao.ciclo_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar ao ciclo
+  </a>
+</div>
+
+<!-- Info do avaliado -->
+<div class="card mb-4">
+  <div class="card-body d-flex align-items-center gap-3">
+    <img src="{{ avaliacao.avaliado.foto_url }}" class="avatar-lg" alt="">
+    <div>
+      <h5 class="fw-bold mb-1">{{ avaliacao.avaliado.nome }}</h5>
+      <div class="text-muted small">{{ avaliacao.avaliado.cargo or '—' }} · {{ avaliacao.avaliado.area_display }}</div>
+      <span class="badge rounded-pill mt-1" style="background:#fee2e2;color:#991b1b">
+        {{ avaliacao.tipo_display }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<form method="POST" id="form-aval">
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-stars me-2" style="color:#EF4444"></i>Critérios de avaliação</div>
+    <div class="card-body">
+      <p class="text-muted small mb-4">Avalie de 1 (insatisfatório) a 5 (excelente) cada critério.</p>
+      <div class="row g-4">
+        {% for campo, label in criterios %}
+        {% set valor_atual = avaliacao[campo] if avaliacao[campo] is defined else (avaliacao | attr(campo)) %}
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small mb-2">{{ label }}</label>
+          <div class="star-rating">
+            {% for i in [5,4,3,2,1] %}
+            <input type="radio" name="{{ campo }}" id="{{ campo }}_{{ i }}" value="{{ i }}"
+                   {% if valor_atual == i %}checked{% endif %}>
+            <label for="{{ campo }}_{{ i }}">★</label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-chat-text me-2" style="color:#EF4444"></i>Feedback qualitativo</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Pontos fortes</label>
+          <textarea name="pontos_fortes" class="form-control" rows="4"
+                    placeholder="O que este colaborador faz muito bem…">{{ avaliacao.pontos_fortes or '' }}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold small">Pontos de melhoria</label>
+          <textarea name="pontos_melhoria" class="form-control" rows="4"
+                    placeholder="O que pode ser desenvolvido…">{{ avaliacao.pontos_melhoria or '' }}</textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold small">Comentários gerais</label>
+          <textarea name="comentarios" class="form-control" rows="3"
+                    placeholder="Observações adicionais…">{{ avaliacao.comentarios or '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end pb-3">
+    <a href="{{ url_for('avaliacoes.detalhe_ciclo', id=avaliacao.ciclo_id) }}"
+       class="btn btn-outline-secondary">Cancelar</a>
+    <button type="submit" name="acao" value="rascunho" class="btn btn-outline-danger">
+      <i class="bi bi-floppy me-1"></i> Salvar rascunho
+    </button>
+    <button type="submit" name="acao" value="enviar" class="btn btn-danger px-4"
+            onclick="return confirm('Enviar avaliação? Não poderá ser alterada depois.')">
+      <i class="bi bi-send me-1"></i> Enviar avaliação
+    </button>
+  </div>
+</form>
+{% endblock %}

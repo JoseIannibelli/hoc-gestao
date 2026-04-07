@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Catálogo de Skills — HOC Gestão{% endblock %}
+{% block page_title %}Competências & Skills{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem">
+    {{ skills|length }} skill{{ 's' if skills|length != 1 else '' }} no catálogo
+  </p>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('skills.busca_por_skill') }}" class="btn btn-outline-success">
+      <i class="bi bi-search me-1"></i> Buscar por skill
+    </a>
+    {% if current_user.is_lider() %}
+    <a href="{{ url_for('skills.nova_skill') }}" class="btn btn-success">
+      <i class="bi bi-plus-lg me-1"></i> Nova skill
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control"
+                 placeholder="Buscar skill…" value="{{ busca }}">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select name="categoria" class="form-select">
+          <option value="">Todas as categorias</option>
+          {% for val, label in categorias %}
+          <option value="{{ val }}" {% if categoria_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-success w-100">Filtrar</button>
+      </div>
+      {% if busca or categoria_sel %}
+      <div class="col-md-1">
+        <a href="{{ url_for('skills.catalogo') }}" class="btn btn-outline-secondary w-100" title="Limpar">
+          <i class="bi bi-x"></i>
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Skills agrupadas por categoria -->
+{% if agrupado %}
+  {% for categoria, lista in agrupado.items() %}
+  <div class="mb-4">
+    <h6 class="text-muted fw-bold mb-3" style="font-size:.8rem;letter-spacing:.06em;text-transform:uppercase">
+      <i class="bi bi-tag me-1"></i>{{ categoria }}
+      <span class="ms-2 badge rounded-pill" style="background:#f1f5f9;color:#475569">{{ lista|length }}</span>
+    </h6>
+    <div class="row g-2">
+      {% for skill in lista %}
+      <div class="col-md-4 col-lg-3">
+        <div class="card h-100 p-3 d-flex flex-row align-items-center gap-3">
+          <div class="rounded-3 p-2 flex-shrink-0" style="background:#d1fae5">
+            <i class="bi bi-stars" style="color:#10B981"></i>
+          </div>
+          <div class="flex-grow-1 min-width-0">
+            <div class="fw-semibold text-truncate">{{ skill.nome }}</div>
+            <small class="text-muted">{{ skill.total_colaboradores }} colaborador{{ 'es' if skill.total_colaboradores != 1 else '' }}</small>
+          </div>
+          {% if current_user.is_lider() %}
+          <a href="{{ url_for('skills.editar_skill', id=skill.id) }}"
+             class="btn btn-sm btn-outline-secondary flex-shrink-0" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-stars fs-1 d-block mb-3"></i>
+    <p>Nenhuma skill encontrada.</p>
+    {% if current_user.is_lider() %}
+    <a href="{{ url_for('skills.nova_skill') }}" class="btn btn-success mt-1">
+      <i class="bi bi-plus-lg me-1"></i> Criar primeira skill
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if colaborador else 'Novo' }} Colaborador — HOC Gestão{% endblock %}
+{% block page_title %}{{ 'Editar Colaborador' if colaborador else 'Novo Colaborador' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .required-mark { color: #ef4444; }
+  .form-label { font-size: .85rem; font-weight: 600; margin-bottom: .3rem; }
+  .section-title {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: .75rem;
+  }
+  .field-hint { font-size: .75rem; color: #94a3b8; margin-top: .2rem; }
+
+  /* Feedback de validação */
+  .was-validated .form-control:invalid,
+  .was-validated .form-select:invalid {
+    border-color: #ef4444;
+    background-image: none;
+  }
+  .was-validated .form-control:valid,
+  .was-validated .form-select:valid {
+    border-color: #10b981;
+    background-image: none;
+  }
+  .invalid-feedback { font-size: .78rem; }
+
+  /* Preview foto */
+  #foto-preview {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e2e8f0;
+    display: block;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('colaboradores.lista') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar
+  </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data" id="form-colaborador" novalidate>
+
+  <div class="row g-3">
+
+    <!-- ── DADOS PESSOAIS ─────────────────────────── -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-person me-2" style="color:#3B82F6"></i>Dados Pessoais
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <!-- Foto -->
+            <div class="col-12 d-flex align-items-center gap-3 mb-2">
+              <img id="foto-preview"
+                   src="{{ colaborador.foto_url if colaborador else '/static/img/avatar_default.png' }}"
+                   alt="Foto">
+              <div>
+                <label class="form-label mb-1">Foto do colaborador</label>
+                <input type="file" name="foto" id="foto-input" class="form-control form-control-sm"
+                       accept="image/png,image/jpeg,image/webp,image/gif"
+                       style="max-width:260px">
+                <div class="field-hint">PNG, JPG ou WEBP · máx. 2 MB</div>
+              </div>
+            </div>
+
+            <!-- Nome -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Nome completo <span class="required-mark">*</span>
+              </label>
+              <input type="text" name="nome" class="form-control"
+                     value="{{ colaborador.nome if colaborador else '' }}"
+                     placeholder="Ex.: Ana Paula Souza"
+                     required minlength="3">
+              <div class="invalid-feedback">Informe o nome completo (mínimo 3 caracteres).</div>
+            </div>
+
+            <!-- E-mail -->
+            <div class="col-md-6">
+              <label class="form-label">
+                E-mail <span class="required-mark">*</span>
+              </label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ colaborador.email if colaborador else '' }}"
+                     placeholder="ana.souza@empresa.com"
+                     required>
+              <div class="invalid-feedback">Informe um e-mail válido.</div>
+            </div>
+
+            <!-- Telefone -->
+            <div class="col-md-4">
+              <label class="form-label">Telefone / WhatsApp</label>
+              <input type="tel" name="telefone" id="campo-telefone" class="form-control"
+                     value="{{ colaborador.telefone if colaborador else '' }}"
+                     placeholder="(11) 99999-9999"
+                     maxlength="15">
+              <div class="field-hint">Celular ou fixo com DDD</div>
+            </div>
+
+            <!-- CPF -->
+            <div class="col-md-4">
+              <label class="form-label">CPF</label>
+              <input type="text" name="cpf" id="campo-cpf" class="form-control"
+                     value="{{ colaborador.cpf if colaborador else '' }}"
+                     placeholder="000.000.000-00"
+                     maxlength="14">
+            </div>
+
+            <!-- Data de nascimento -->
+            <div class="col-md-4">
+              <label class="form-label">Data de nascimento</label>
+              <input type="date" name="data_nascimento" class="form-control"
+                     value="{{ colaborador.data_nascimento.strftime('%Y-%m-%d') if colaborador and colaborador.data_nascimento else '' }}"
+                     max="{{ now_date }}">
+            </div>
+
+            <!-- Cidade -->
+            <div class="col-md-5">
+              <label class="form-label">Cidade</label>
+              <input type="text" name="cidade" class="form-control"
+                     value="{{ colaborador.cidade if colaborador else '' }}"
+                     placeholder="Ex.: São Paulo">
+            </div>
+
+            <!-- Estado -->
+            <div class="col-md-3">
+              <label class="form-label">Estado</label>
+              <select name="estado" class="form-select">
+                <option value="">Selecione…</option>
+                {% for sigla, nome in estados %}
+                <option value="{{ sigla }}"
+                  {% if colaborador and colaborador.estado == sigla %}selected{% endif %}>
+                  {{ sigla }} — {{ nome }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- LinkedIn -->
+            <div class="col-md-4">
+              <label class="form-label">LinkedIn</label>
+              <div class="input-group">
+                <span class="input-group-text" style="font-size:.8rem">linkedin.com/in/</span>
+                <input type="text" name="linkedin" class="form-control"
+                       value="{{ colaborador.linkedin | replace('https://linkedin.com/in/', '') | replace('https://www.linkedin.com/in/', '') if colaborador and colaborador.linkedin else '' }}"
+                       placeholder="seu-perfil">
+              </div>
+              <div class="field-hint">Informe apenas o slug do perfil</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DADOS PROFISSIONAIS ────────────────────── -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-briefcase me-2" style="color:#10B981"></i>Dados Profissionais
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <!-- Cargo -->
+            <div class="col-md-5">
+              <label class="form-label">
+                Cargo <span class="required-mark">*</span>
+              </label>
+              <input type="text" name="cargo" class="form-control"
+                     value="{{ colaborador.cargo if colaborador else '' }}"
+                     placeholder="Ex.: Analista de Sistemas"
+                     required list="sugestoes-cargo">
+              <datalist id="sugestoes-cargo">
+                <option value="Analista de Sistemas">
+                <option value="Analista de Infraestrutura">
+                <option value="Analista de Dados">
+                <option value="Analista de Segurança">
+                <option value="Analista de QA">
+                <option value="Desenvolvedor(a) Backend">
+                <option value="Desenvolvedor(a) Frontend">
+                <option value="Desenvolvedor(a) Full Stack">
+                <option value="Arquiteto(a) de Soluções">
+                <option value="Gerente de Projetos">
+                <option value="Scrum Master">
+                <option value="Product Owner">
+                <option value="DevOps Engineer">
+                <option value="DBA">
+                <option value="Consultor(a) de TI">
+                <option value="Líder Técnico">
+              </datalist>
+              <div class="invalid-feedback">Informe o cargo do colaborador.</div>
+            </div>
+
+            <!-- Área -->
+            <div class="col-md-4">
+              <label class="form-label">
+                Área <span class="required-mark">*</span>
+              </label>
+              <select name="area" class="form-select" required>
+                <option value="">Selecione a área…</option>
+                {% for val, label in areas %}
+                <option value="{{ val }}"
+                  {% if colaborador and colaborador.area == val %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Selecione a área de atuação.</div>
+            </div>
+
+            <!-- Senioridade -->
+            <div class="col-md-3">
+              <label class="form-label">
+                Senioridade <span class="required-mark">*</span>
+              </label>
+              <select name="senioridade" class="form-select" required>
+                <option value="">Selecione…</option>
+                {% for val, label in senioridades %}
+                <option value="{{ val }}"
+                  {% if colaborador and colaborador.senioridade == val %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Selecione o nível de senioridade.</div>
+            </div>
+
+            <!-- Regime contratual -->
+            <div class="col-md-4">
+              <label class="form-label">Regime de contratação</label>
+              <select name="regime" class="form-select">
+                <option value="">Selecione…</option>
+                {% for val, label in regimes %}
+                <option value="{{ val }}"
+                  {% if colaborador and colaborador.regime == val %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Data de admissão -->
+            <div class="col-md-4">
+              <label class="form-label">Data de admissão</label>
+              <input type="date" name="data_admissao" class="form-control"
+                     value="{{ colaborador.data_admissao.strftime('%Y-%m-%d') if colaborador and colaborador.data_admissao else '' }}">
+            </div>
+
+            <!-- Bio -->
+            <div class="col-12">
+              <label class="form-label">Resumo profissional</label>
+              <textarea name="bio" class="form-control" rows="3"
+                        maxlength="1000"
+                        id="campo-bio"
+                        placeholder="Descreva brevemente a experiência e perfil profissional…">{{ colaborador.bio if colaborador else '' }}</textarea>
+              <div class="d-flex justify-content-end">
+                <small class="text-muted" id="bio-count">0 / 1000</small>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BOTÕES ──────────────────────────────────── -->
+    <div class="col-12 d-flex gap-2 justify-content-end pb-3">
+      <a href="{{ url_for('colaboradores.lista') }}" class="btn btn-outline-secondary">
+        Cancelar
+      </a>
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-check-lg me-1"></i>
+        {{ 'Salvar alterações' if colaborador else 'Cadastrar colaborador' }}
+      </button>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Validação Bootstrap ────────────────────────────
+const form = document.getElementById('form-colaborador');
+form.addEventListener('submit', function(e) {
+  if (!form.checkValidity()) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  form.classList.add('was-validated');
+});
+
+// ── Máscara de telefone ────────────────────────────
+const tel = document.getElementById('campo-telefone');
+if (tel) {
+  tel.addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length <= 10) {
+      v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+    } else {
+      v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/, '($1) $2-$3');
+    }
+    this.value = v;
+  });
+}
+
+// ── Máscara de CPF ─────────────────────────────────
+const cpf = document.getElementById('campo-cpf');
+if (cpf) {
+  cpf.addEventListener('input', function() {
+    let v = this.value.replace(/\D/g, '').slice(0, 11);
+    v = v.replace(/^(\d{3})(\d)/, '$1.$2');
+    v = v.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+    v = v.replace(/\.(\d{3})(\d)/, '.$1-$2');
+    this.value = v;
+  });
+
+  // Validação básica de CPF
+  cpf.addEventListener('blur', function() {
+    const digits = this.value.replace(/\D/g, '');
+    if (digits.length > 0 && digits.length < 11) {
+      this.setCustomValidity('CPF incompleto.');
+      this.classList.add('is-invalid');
+    } else {
+      this.setCustomValidity('');
+      this.classList.remove('is-invalid');
+    }
+  });
+}
+
+// ── Preview de foto ────────────────────────────────
+const fotoInput = document.getElementById('foto-input');
+const fotoPreview = document.getElementById('foto-preview');
+if (fotoInput && fotoPreview) {
+  fotoInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('A foto deve ter no máximo 2 MB.');
+      this.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => fotoPreview.src = e.target.result;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Contador de bio ────────────────────────────────
+const bio = document.getElementById('campo-bio');
+const bioCount = document.getElementById('bio-count');
+if (bio && bioCount) {
+  function updateCount() {
+    const n = bio.value.length;
+    bioCount.textContent = `${n} / 1000`;
+    bioCount.style.color = n > 900 ? '#ef4444' : '#94a3b8';
+  }
+  bio.addEventListener('input', updateCount);
+  updateCount();
+}
+
+// ── LinkedIn: monta URL completa antes de submeter ──
+form.addEventListener('submit', function() {
+  const li = form.querySelector('[name="linkedin"]');
+  if (li && li.value && !li.value.startsWith('http')) {
+    li.value = 'https://linkedin.com/in/' + li.value.trim().replace(/^\//, '');
+  }
+});
+</script>
+{% endblock %}

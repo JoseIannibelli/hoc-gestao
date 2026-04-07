@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+{% block title %}{{ eq.nome_completo }}{% endblock %}
+{% block page_title %}Equipamento — {{ eq.nome_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.info-label { font-size:.72rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; }
+.info-value { font-size:.95rem; color:#1e293b; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+
+  <!-- Coluna esquerda: dados + alocação -->
+  <div class="col-12 col-lg-8">
+
+    <!-- Dados do equipamento -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-laptop me-2"></i>Dados do equipamento</span>
+        <div class="d-flex gap-2">
+          <span class="badge rounded-pill px-3 py-2"
+                style="background:{{ eq.status_info.bg }};color:{{ eq.status_info.color }};font-size:.78rem">
+            {{ eq.status_info.label }}
+          </span>
+          {% if current_user.is_gestor() %}
+          <a href="{{ url_for('equipamentos.editar', id=eq.id) }}"
+             class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-pencil me-1"></i>Editar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-6 col-md-3">
+            <div class="info-label">Tipo</div>
+            <div class="info-value">{{ eq.tipo_display }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Marca</div>
+            <div class="info-value">{{ eq.marca or '—' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Modelo</div>
+            <div class="info-value">{{ eq.modelo or '—' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Valor aquisição</div>
+            <div class="info-value">
+              {% if eq.valor %}
+              R$ {{ ('%.2f' % eq.valor) | replace('.', ',') }}
+              {% else %}—{% endif %}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Nº de série</div>
+            <div class="info-value" style="font-size:.85rem">{{ eq.numero_serie or '—' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Patrimônio</div>
+            <div class="info-value" style="font-size:.85rem">{{ eq.numero_patrimonio or '—' }}</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Data aquisição</div>
+            <div class="info-value">
+              {{ eq.data_aquisicao.strftime('%d/%m/%Y') if eq.data_aquisicao else '—' }}
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="info-label">Cadastrado em</div>
+            <div class="info-value" style="font-size:.85rem">
+              {{ eq.created_at.strftime('%d/%m/%Y') }}
+            </div>
+          </div>
+          {% if eq.descricao %}
+          <div class="col-12">
+            <div class="info-label">Descrição / Acessórios</div>
+            <div class="info-value small">{{ eq.descricao }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Histórico de alocações -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clock-history me-2"></i>Histórico de alocações</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
+          <thead class="table-light">
+            <tr>
+              <th>Colaborador</th>
+              <th>Entrega</th>
+              <th>Devolução</th>
+              <th>Estado</th>
+              <th>Dias</th>
+              <th>Termo</th>
+              {% if current_user.is_gestor() %}<th>Ações</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for aloc in historico %}
+            <tr class="{{ 'table-primary' if aloc.ativo else '' }}">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <img src="{{ aloc.colaborador.foto_url }}" class="avatar" alt="">
+                  <div>
+                    <div class="fw-semibold">{{ aloc.colaborador.nome }}</div>
+                    <div class="text-muted small">
+                      {% if aloc.ativo %}
+                      <span class="badge bg-primary" style="font-size:.68rem">Atual</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="text-nowrap">
+                {{ aloc.data_entrega.strftime('%d/%m/%Y') }}
+                <div class="text-muted small">{{ aloc.estado_entrega_display }}</div>
+              </td>
+              <td class="text-nowrap">
+                {% if aloc.data_devolucao %}
+                {{ aloc.data_devolucao.strftime('%d/%m/%Y') }}
+                <div class="text-muted small">{{ aloc.estado_devolucao_display }}</div>
+                {% elif aloc.data_prevista_devolucao %}
+                <span class="text-muted small">Prev. {{ aloc.data_prevista_devolucao.strftime('%d/%m/%Y') }}</span>
+                {% else %}
+                <span class="text-muted small">Indeterminado</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if aloc.ativo %}
+                <span class="badge" style="background:#dbeafe;color:#1d4ed8">Em uso</span>
+                {% else %}
+                <span class="badge" style="background:#d1fae5;color:#065f46">Devolvido</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ aloc.dias_com_colaborador }}d</td>
+              <td>
+                <a href="{{ url_for('equipamentos.termo_pdf', aloc_id=aloc.id) }}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-danger"
+                   title="Gerar Termo de Responsabilidade PDF">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+              </td>
+              {% if current_user.is_gestor() %}
+              <td>
+                {% if aloc.ativo %}
+                <button class="btn btn-sm btn-outline-warning"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalDevolver"
+                        onclick="setAlocId({{ aloc.id }}, '{{ aloc.colaborador.nome }}')">
+                  <i class="bi bi-arrow-return-left me-1"></i>Devolver
+                </button>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">
+                Nenhuma alocação registrada.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: alocar -->
+  <div class="col-12 col-lg-4">
+
+    {% if current_user.is_gestor() and eq.status == 'disponivel' %}
+    <!-- Formulário de alocação -->
+    <div class="card mb-3">
+      <div class="card-header text-white" style="background:#1E3A5F">
+        <i class="bi bi-person-plus me-2"></i>Alocar equipamento
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('equipamentos.alocar', id=eq.id) }}"
+              class="needs-validation" novalidate>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Colaborador <span class="text-danger">*</span>
+            </label>
+            <select name="colaborador_id" class="form-select form-select-sm" required>
+              <option value="">Selecione…</option>
+              {% for c in colaboradores %}
+              <option value="{{ c.id }}">{{ c.nome }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Selecione o colaborador.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Data de entrega <span class="text-danger">*</span>
+            </label>
+            <input type="date" name="data_entrega" class="form-control form-control-sm"
+                   value="{{ hoje.strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Previsão de devolução</label>
+            <input type="date" name="data_prevista_devolucao"
+                   class="form-control form-control-sm">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Estado na entrega</label>
+            <select name="estado_entrega" class="form-select form-select-sm">
+              {% for val, label in estados %}
+              <option value="{{ val }}" {{ 'selected' if val == 'bom' }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações</label>
+            <textarea name="observacoes" class="form-control form-control-sm" rows="2"
+                      placeholder="Acessórios incluídos, condições especiais…"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 btn-sm fw-semibold"
+                  onclick="this.form.classList.add('was-validated')">
+            <i class="bi bi-person-plus me-1"></i>Confirmar alocação
+          </button>
+        </form>
+      </div>
+    </div>
+    {% elif eq.status == 'alocado' %}
+    {% set aloc_ativa = eq.alocacao_ativa %}
+    <div class="card mb-3" style="border-color:#93c5fd;border-width:2px">
+      <div class="card-body">
+        <div class="text-muted small fw-bold mb-2 text-uppercase" style="letter-spacing:.05em">
+          <i class="bi bi-person-check me-1"></i>Alocado para
+        </div>
+        {% if aloc_ativa %}
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <img src="{{ aloc_ativa.colaborador.foto_url }}"
+               class="avatar-lg" alt="">
+          <div>
+            <div class="fw-bold">{{ aloc_ativa.colaborador.nome }}</div>
+            <div class="text-muted small">{{ aloc_ativa.colaborador.cargo or '—' }}</div>
+            <div class="text-muted small mt-1">
+              Desde {{ aloc_ativa.data_entrega.strftime('%d/%m/%Y') }}
+              ({{ aloc_ativa.dias_com_colaborador }} dias)
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('equipamentos.termo_pdf', aloc_id=aloc_ativa.id) }}"
+           target="_blank" class="btn btn-outline-danger w-100 btn-sm mb-2">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Gerar / Imprimir Termo
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Voltar -->
+    <a href="{{ url_for('equipamentos.lista') }}"
+       class="btn btn-outline-secondary w-100 btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Voltar à lista
+    </a>
+  </div>
+</div>
+
+<!-- Modal: registrar devolução -->
+{% if current_user.is_gestor() %}
+<div class="modal fade" id="modalDevolver" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="form-devolver" method="POST" action="">
+        <div class="modal-header">
+          <h6 class="modal-title">Registrar devolução</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3" id="modal-desc-dev"></p>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Data de devolução</label>
+            <input type="date" name="data_devolucao" class="form-control"
+                   value="{{ hoje.strftime('%Y-%m-%d') }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Estado na devolução</label>
+            <select name="estado_devolucao" class="form-select">
+              {% for val, label in estados %}
+              <option value="{{ val }}" {{ 'selected' if val == 'bom' }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observações (opcional)</label>
+            <textarea name="observacoes_dev" class="form-control" rows="2"
+                      placeholder="Condição de devolução, pendências…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning fw-semibold">
+            <i class="bi bi-arrow-return-left me-1"></i>Confirmar devolução
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setAlocId(alocId, nome) {
+  document.getElementById('form-devolver').action = `/equipamentos/devolucao/${alocId}`;
+  document.getElementById('modal-desc-dev').textContent =
+    `Registrar devolução do equipamento por ${nome}.`;
+}
+</script>
+{% endblock %}

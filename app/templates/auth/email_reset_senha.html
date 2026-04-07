@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 0">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0"
+               style="background:#ffffff;border-radius:16px;overflow:hidden;
+                      box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+          <!-- Cabeçalho -->
+          <tr>
+            <td style="background:#1E3A5F;padding:28px 32px;text-align:center">
+              <div style="display:inline-block;background:#3B82F6;border-radius:12px;
+                          padding:10px 16px;margin-bottom:12px">
+                <span style="color:#ffffff;font-size:22px;font-weight:bold">⬡</span>
+              </div>
+              <div style="color:#ffffff;font-size:20px;font-weight:bold;margin-top:4px">
+                HOC Gestão
+              </div>
+              <div style="color:#93C5FD;font-size:13px;margin-top:2px">Consultoria TI</div>
+            </td>
+          </tr>
+
+          <!-- Corpo -->
+          <tr>
+            <td style="padding:36px 32px">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:bold;color:#1E293B">
+                Redefinição de senha
+              </p>
+              <p style="margin:0 0 20px;font-size:14px;color:#64748B">
+                Olá, <strong>{{ user.nome }}</strong>! Recebemos uma solicitação para
+                redefinir a senha da sua conta.
+              </p>
+
+              <p style="margin:0 0 24px;font-size:14px;color:#374151">
+                Clique no botão abaixo para criar uma nova senha. Este link é válido
+                por <strong>1 hora</strong>.
+              </p>
+
+              <!-- Botão CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0 28px">
+                    <a href="{{ link }}"
+                       style="display:inline-block;background:#3B82F6;color:#ffffff;
+                              font-size:15px;font-weight:bold;text-decoration:none;
+                              border-radius:10px;padding:14px 36px">
+                      Redefinir minha senha →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Link alternativo -->
+              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;
+                          padding:14px;margin-bottom:24px">
+                <p style="margin:0 0 6px;font-size:11px;color:#94A3B8;font-weight:bold;
+                           text-transform:uppercase;letter-spacing:.05em">
+                  Ou copie este link:
+                </p>
+                <p style="margin:0;font-size:11px;color:#3B82F6;word-break:break-all">
+                  {{ link }}
+                </p>
+              </div>
+
+              <div style="background:#FEF9C3;border-left:4px solid #F59E0B;
+                          border-radius:4px;padding:12px 14px">
+                <p style="margin:0;font-size:12px;color:#854D0E">
+                  <strong>Não fez essa solicitação?</strong> Ignore este e-mail.
+                  Sua senha permanece inalterada. Se você estiver preocupado,
+                  entre em contato com o administrador do sistema.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Rodapé -->
+          <tr>
+            <td style="background:#F8FAFC;padding:20px 32px;
+                       border-top:1px solid #E2E8F0;text-align:center">
+              <p style="margin:0;font-size:11px;color:#94A3B8">
+                Este é um e-mail automático. Não responda a esta mensagem.<br>
+                © HOC Gestão — Consultoria TI
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if skill else 'Nova' }} Skill — HOC Gestão{% endblock %}
+{% block page_title %}{{ 'Editar Skill' if skill else 'Nova Skill' }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('skills.catalogo') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar ao catálogo
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <form method="POST" novalidate id="form-skill">
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-stars me-2" style="color:#10B981"></i>
+          Dados da Skill
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Nome <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control"
+                     value="{{ skill.nome if skill else '' }}"
+                     placeholder="Ex.: Python, React, AWS, Scrum…"
+                     required>
+              <div class="invalid-feedback">Informe o nome da skill.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Categoria <span class="text-danger">*</span></label>
+              <select name="categoria" class="form-select" required>
+                <option value="">Selecione…</option>
+                {% for val, label in categorias %}
+                <option value="{{ val }}"
+                  {% if skill and skill.categoria == val %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Selecione a categoria.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small">Descrição</label>
+              <textarea name="descricao" class="form-control" rows="3"
+                        placeholder="Descreva brevemente esta skill…">{{ skill.descricao if skill else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{{ url_for('skills.catalogo') }}" class="btn btn-outline-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-success px-4">
+            <i class="bi bi-check-lg me-1"></i>
+            {{ 'Salvar' if skill else 'Criar skill' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const form = document.getElementById('form-skill');
+form.addEventListener('submit', e => {
+  if (!form.checkValidity()) { e.preventDefault(); e.stopPropagation(); }
+  form.classList.add('was-validated');
+});
+</script>
+{% endblock %}

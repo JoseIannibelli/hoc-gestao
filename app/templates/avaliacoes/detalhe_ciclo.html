@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}{{ ciclo.nome }} — HOC Gestão{% endblock %}
+{% block page_title %}{{ ciclo.nome }}{% endblock %}
+
+{% block content %}
+<div class="mb-3 d-flex gap-2">
+  <a href="{{ url_for('avaliacoes.lista_ciclos') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Ciclos
+  </a>
+  {% if current_user.is_gestor() %}
+  <a href="{{ url_for('avaliacoes.editar_ciclo', id=ciclo.id) }}" class="btn btn-sm btn-outline-primary">
+    <i class="bi bi-pencil me-1"></i> Editar
+  </a>
+  {% endif %}
+</div>
+
+<!-- Cabeçalho do ciclo -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge rounded-pill px-3 py-2"
+                style="background:{{ ciclo.status_info.bg }};color:{{ ciclo.status_info.color }}">
+            {{ ciclo.status_info.label }}
+          </span>
+          <div>
+            {% if ciclo.data_inicio %}
+            <small class="text-muted">
+              {{ ciclo.data_inicio.strftime('%d/%m/%Y') }}
+              {% if ciclo.data_fim %} → {{ ciclo.data_fim.strftime('%d/%m/%Y') }}{% endif %}
+            </small>
+            {% endif %}
+          </div>
+        </div>
+        {% if ciclo.descricao %}<p class="text-muted small mt-2 mb-0">{{ ciclo.descricao }}</p>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <div class="row g-3 text-center">
+          <div class="col-4">
+            <div class="fw-bold fs-4" style="color:#EF4444">{{ ciclo.total_avaliacoes }}</div>
+            <div class="text-muted small">Total</div>
+          </div>
+          <div class="col-4">
+            <div class="fw-bold fs-4 text-warning">{{ ciclo.avaliacoes.filter_by(status='rascunho').count() }}</div>
+            <div class="text-muted small">Rascunhos</div>
+          </div>
+          <div class="col-4">
+            <div class="fw-bold fs-4 text-success">{{ ciclo.total_enviadas }}</div>
+            <div class="text-muted small">Enviadas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Criar nova avaliação -->
+{% if current_user.is_lider() and ciclo.status != 'fechado' %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-plus-circle me-2" style="color:#EF4444"></i>Criar avaliação</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('avaliacoes.criar_avaliacao', ciclo_id=ciclo.id) }}"
+          class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small fw-semibold">Colaborador avaliado</label>
+        <select name="avaliado_id" class="form-select" required>
+          <option value="">Selecione…</option>
+          {% for c in colaboradores %}
+          <option value="{{ c.id }}">{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Tipo</label>
+        <select name="tipo" class="form-select">
+          {% for val, label in tipos %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn w-100" style="background:#EF4444;color:white">
+          <i class="bi bi-plus-lg me-1"></i> Criar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Lista de avaliações -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-list-check me-2"></i>Avaliações</div>
+  {% if avaliacoes %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Avaliado</th>
+          <th>Tipo</th>
+          <th>Avaliador</th>
+          <th>Nota média</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for av in avaliacoes %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ av.avaliado.foto_url }}" class="avatar" alt="">
+              <span class="fw-semibold">{{ av.avaliado.nome }}</span>
+            </div>
+          </td>
+          <td><small>{{ av.tipo_display }}</small></td>
+          <td><small class="text-muted">{{ av.avaliador.nome }}</small></td>
+          <td>
+            {% if av.media %}
+            <span class="fw-bold" style="color:{% if av.media >= 4 %}#10B981{% elif av.media >= 3 %}#f59e0b{% else %}#EF4444{% endif %}">
+              {{ av.media }} / 5
+            </span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set cores_st = {'pendente': 'fee2e2:#991b1b', 'rascunho': 'fef9c3:#854d0e', 'enviada': 'd1fae5:#065f46'} %}
+            {% set cor = cores_st.get(av.status, 'f1f5f9:#475569').split(':') %}
+            <span class="badge rounded-pill" style="background:#{{ cor[0] }};color:#{{ cor[1] }}">
+              {{ av.status_display }}
+            </span>
+          </td>
+          <td>
+            {% if av.status != 'enviada' and av.avaliador_id == current_user.id %}
+            <a href="{{ url_for('avaliacoes.preencher', id=av.id) }}"
+               class="btn btn-sm btn-outline-danger">Preencher</a>
+            {% else %}
+            <a href="{{ url_for('avaliacoes.ver', id=av.id) }}"
+               class="btn btn-sm btn-outline-secondary">Ver</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center py-4 text-muted">
+    <i class="bi bi-clipboard fs-2 d-block mb-2"></i>
+    Nenhuma avaliação criada neste ciclo.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

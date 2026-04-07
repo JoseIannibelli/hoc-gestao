@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}{{ colaborador.nome }} — HOC Gestão{% endblock %}
+{% block page_title %}Perfil do Colaborador{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('colaboradores.lista') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Voltar à lista
+  </a>
+</div>
+
+<div class="row g-3">
+  <!-- Cartão principal -->
+  <div class="col-lg-4">
+    <div class="card text-center p-4">
+      <img src="{{ colaborador.foto_url }}" class="avatar-lg mx-auto mb-3" alt="{{ colaborador.nome }}">
+      <h5 class="fw-bold mb-1">{{ colaborador.nome }}</h5>
+      <p class="text-muted small mb-2">{{ colaborador.cargo or 'Sem cargo definido' }}</p>
+
+      <div class="d-flex justify-content-center gap-2 mb-3 flex-wrap">
+        {% if colaborador.area %}
+        <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8">
+          {{ colaborador.area_display }}
+        </span>
+        {% endif %}
+        {% if colaborador.senioridade %}
+        <span class="badge rounded-pill" style="background:#f1f5f9;color:#475569">
+          {{ colaborador.senioridade_display }}
+        </span>
+        {% endif %}
+        <span class="badge rounded-pill {% if colaborador.ativo %}pill-ativo{% else %}pill-inativo{% endif %}">
+          {{ 'Ativo' if colaborador.ativo else 'Inativo' }}
+        </span>
+      </div>
+
+      {% if colaborador.linkedin %}
+      <a href="{{ colaborador.linkedin }}" target="_blank" class="btn btn-sm btn-outline-primary mb-2">
+        <i class="bi bi-linkedin me-1"></i> LinkedIn
+      </a>
+      {% endif %}
+
+      {% if current_user.is_gestor() or current_user.is_lider() %}
+      <a href="{{ url_for('colaboradores.editar', id=colaborador.id) }}"
+         class="btn btn-sm btn-primary">
+        <i class="bi bi-pencil me-1"></i> Editar perfil
+      </a>
+      {% endif %}
+      <a href="{{ url_for('skills.perfil_skills', colab_id=colaborador.id) }}"
+         class="btn btn-sm btn-outline-success">
+        <i class="bi bi-stars me-1"></i> Skills
+      </a>
+      <a href="{{ url_for('avaliacoes.metas_colaborador', colab_id=colaborador.id) }}"
+         class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-bullseye me-1"></i> Metas / PDI
+      </a>
+    </div>
+  </div>
+
+  <!-- Detalhes -->
+  <div class="col-lg-8">
+
+    <!-- Dados profissionais -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="bi bi-briefcase me-2" style="color:#3B82F6"></i>Dados Profissionais
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Cargo</label>
+            <span>{{ colaborador.cargo or '—' }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Área</label>
+            <span>{{ colaborador.area_display }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Senioridade</label>
+            <span>{{ colaborador.senioridade_display }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Data de admissão</label>
+            <span>
+              {% if colaborador.data_admissao %}
+                {{ colaborador.data_admissao.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="bi bi-person me-2" style="color:#10B981"></i>Dados Pessoais
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">E-mail</label>
+            <a href="mailto:{{ colaborador.email }}">{{ colaborador.email }}</a>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Telefone</label>
+            <span>{{ colaborador.telefone or '—' }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">CPF</label>
+            <span>{{ colaborador.cpf or '—' }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Data de nascimento</label>
+            <span>
+              {% if colaborador.data_nascimento %}
+                {{ colaborador.data_nascimento.strftime('%d/%m/%Y') }}
+              {% else %}—{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bio -->
+    {% if colaborador.bio %}
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-file-text me-2" style="color:#8B5CF6"></i>Resumo Profissional
+      </div>
+      <div class="card-body">
+        <p class="mb-0 text-secondary" style="line-height:1.7">{{ colaborador.bio }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

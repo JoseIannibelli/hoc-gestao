@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}Usuários — HOC Gestão{% endblock %}
+{% block page_title %}Gestão de Usuários{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <p class="text-muted mb-0" style="font-size:.875rem">
+    {{ usuarios|length }} usuário{{ 's' if usuarios|length != 1 else '' }} encontrado{{ 's' if usuarios|length != 1 else '' }}
+  </p>
+  <a href="{{ url_for('usuarios.novo') }}" class="btn btn-primary">
+    <i class="bi bi-person-plus me-1"></i> Novo usuário
+  </a>
+</div>
+
+<!-- Cards de resumo por perfil -->
+<div class="row g-3 mb-4">
+  {% set cores  = {'admin': '#fee2e2', 'gestor': '#dbeafe', 'lider': '#ede9fe', 'tecnico': '#d1fae5'} %}
+  {% set icones = {'admin': 'shield-lock', 'gestor': 'shield-check', 'lider': 'diagram-3', 'tecnico': 'person-gear'} %}
+  {% set txtcor = {'admin': '#991b1b', 'gestor': '#1d4ed8', 'lider': '#6d28d9', 'tecnico': '#065f46'} %}
+  {% for val, label, desc in roles %}
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3" style="background:{{ cores[val] }}">
+          <i class="bi bi-{{ icones[val] }} fs-5" style="color:{{ txtcor[val] }}"></i>
+        </div>
+        <div>
+          <div class="fw-bold">{{ label }}</div>
+          <div class="text-muted" style="font-size:.78rem">{{ desc }}</div>
+          <div class="fw-semibold mt-1">
+            {{ usuarios | selectattr('role', 'equalto', val) | list | length }} usuário(s)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small fw-semibold mb-1">Buscar</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="busca" class="form-control"
+                 placeholder="Nome ou e-mail…" value="{{ busca }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold mb-1">Perfil</label>
+        <select name="role" class="form-select">
+          <option value="">Todos os perfis</option>
+          {% for val, label, _ in roles %}
+          <option value="{{ val }}" {% if role_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold mb-1">Status</label>
+        <select name="status" class="form-select">
+          <option value="ativo"   {% if status_sel == 'ativo'   %}selected{% endif %}>Ativos</option>
+          <option value="inativo" {% if status_sel == 'inativo' %}selected{% endif %}>Inativos</option>
+          <option value="todos"   {% if status_sel == 'todos'   %}selected{% endif %}>Todos</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabela -->
+{% if usuarios %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Usuário</th>
+          <th>Perfil</th>
+          <th>Último acesso</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ u.nome }}</div>
+            <small class="text-muted">{{ u.email }}</small>
+          </td>
+          <td>
+            {% if u.role == 'admin' %}
+              <span class="badge rounded-pill" style="background:#fee2e2;color:#991b1b">
+                <i class="bi bi-shield-lock me-1"></i>Administrador
+              </span>
+            {% elif u.role == 'gestor' %}
+              <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8">
+                <i class="bi bi-shield-check me-1"></i>Gestor
+              </span>
+            {% elif u.role == 'lider' %}
+              <span class="badge rounded-pill" style="background:#ede9fe;color:#6d28d9">
+                <i class="bi bi-diagram-3 me-1"></i>Líder de Projeto
+              </span>
+            {% else %}
+              <span class="badge rounded-pill" style="background:#d1fae5;color:#065f46">
+                <i class="bi bi-person-gear me-1"></i>Equipe Técnica
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <small class="text-muted">
+              {% if u.ultimo_acesso %}
+                {{ u.ultimo_acesso.strftime('%d/%m/%Y %H:%M') }}
+              {% else %}Nunca{% endif %}
+            </small>
+          </td>
+          <td>
+            <span class="badge rounded-pill px-2 {% if u.ativo %}pill-ativo{% else %}pill-inativo{% endif %}">
+              {{ 'Ativo' if u.ativo else 'Inativo' }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('usuarios.editar', id=u.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </a>
+
+              <!-- Resetar senha -->
+              <button class="btn btn-sm btn-outline-secondary"
+                      title="Redefinir senha"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalSenha{{ u.id }}">
+                <i class="bi bi-key"></i>
+              </button>
+
+              <!-- Ativar / Desativar -->
+              {% if u.id != current_user.id %}
+              <form method="POST"
+                    action="{{ url_for('usuarios.toggle_ativo', id=u.id) }}"
+                    onsubmit="return confirm('Alterar status de {{ u.nome }}?')">
+                <button type="submit"
+                        class="btn btn-sm btn-outline-{{ 'danger' if u.ativo else 'success' }}"
+                        title="{{ 'Desativar' if u.ativo else 'Ativar' }}">
+                  <i class="bi bi-{{ 'slash-circle' if u.ativo else 'check-circle' }}"></i>
+                </button>
+              </form>
+
+              <!-- Excluir -->
+              <button class="btn btn-sm btn-outline-danger"
+                      title="Excluir usuário"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalExcluir{{ u.id }}">
+                <i class="bi bi-trash3"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Modal redefinir senha -->
+        <div class="modal fade" id="modalSenha{{ u.id }}" tabindex="-1">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <form method="POST" action="{{ url_for('usuarios.resetar_senha', id=u.id) }}">
+                <div class="modal-header">
+                  <h6 class="modal-title">Redefinir senha</h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="small text-muted mb-2">Nova senha para <strong>{{ u.nome }}</strong>:</p>
+                  <input type="password" name="nova_senha" class="form-control"
+                         placeholder="Mínimo 6 caracteres" minlength="6" required>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-sm btn-outline-secondary"
+                          data-bs-dismiss="modal">Cancelar</button>
+                  <button type="submit" class="btn btn-sm btn-primary">Redefinir</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal confirmar exclusão -->
+        {% if u.id != current_user.id %}
+        <div class="modal fade" id="modalExcluir{{ u.id }}" tabindex="-1">
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content border-danger">
+              <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Excluir usuário</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <p class="mb-1">Tem certeza que deseja excluir permanentemente:</p>
+                <p class="fw-bold mb-1">{{ u.nome }}</p>
+                <p class="small text-muted mb-0">{{ u.email }}</p>
+                <hr class="my-2">
+                <p class="small text-danger mb-0">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Esta ação não pode ser desfeita. Usuários com projetos vinculados não podem ser excluídos.
+                </p>
+              </div>
+              <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('usuarios.excluir', id=u.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash3 me-1"></i>Excluir
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-people fs-1 d-block mb-3"></i>
+    <p>Nenhum usuário encontrado.</p>
+    <a href="{{ url_for('usuarios.novo') }}" class="btn btn-primary mt-1">
+      <i class="bi bi-person-plus me-1"></i> Criar usuário
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Meus Equipamentos{% endblock %}
+{% block page_title %}Meus Equipamentos{% endblock %}
+
+{% block content %}
+
+{% if alocacoes_ativas %}
+<h6 class="fw-bold text-muted mb-3 text-uppercase" style="font-size:.75rem;letter-spacing:.08em">
+  Em uso
+</h6>
+<div class="row g-3 mb-5">
+  {% for aloc in alocacoes_ativas %}
+  {% set eq = aloc.equipamento %}
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between mb-3">
+          <div>
+            <div class="fw-bold">{{ eq.tipo_display }}</div>
+            <div class="text-muted small">
+              {{ eq.marca or '' }}{% if eq.marca and eq.modelo %} — {% endif %}{{ eq.modelo or '' }}
+            </div>
+          </div>
+          <span class="badge rounded-pill" style="background:#dbeafe;color:#1d4ed8">Em uso</span>
+        </div>
+
+        <div class="row g-2 mb-3" style="font-size:.82rem">
+          {% if eq.numero_serie %}
+          <div class="col-12">
+            <span class="text-muted">Série:</span>
+            <span class="fw-semibold ms-1">{{ eq.numero_serie }}</span>
+          </div>
+          {% endif %}
+          {% if eq.numero_patrimonio %}
+          <div class="col-12">
+            <span class="text-muted">Patrimônio:</span>
+            <span class="fw-semibold ms-1">{{ eq.numero_patrimonio }}</span>
+          </div>
+          {% endif %}
+          <div class="col-12">
+            <span class="text-muted">Em uso desde:</span>
+            <span class="fw-semibold ms-1">
+              {{ aloc.data_entrega.strftime('%d/%m/%Y') }}
+              ({{ aloc.dias_com_colaborador }} dias)
+            </span>
+          </div>
+          {% if aloc.data_prevista_devolucao %}
+          <div class="col-12">
+            <span class="text-muted">Previsão devolução:</span>
+            <span class="fw-semibold ms-1">{{ aloc.data_prevista_devolucao.strftime('%d/%m/%Y') }}</span>
+          </div>
+          {% endif %}
+          {% if aloc.estado_entrega %}
+          <div class="col-12">
+            <span class="text-muted">Estado na entrega:</span>
+            <span class="fw-semibold ms-1">{{ aloc.estado_entrega_display }}</span>
+          </div>
+          {% endif %}
+          {% if eq.descricao %}
+          <div class="col-12">
+            <span class="text-muted">Acessórios:</span>
+            <span class="ms-1" style="font-size:.78rem">{{ eq.descricao }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Botão Termo PDF -->
+        <a href="{{ url_for('equipamentos.termo_pdf', aloc_id=aloc.id) }}"
+           target="_blank"
+           class="btn btn-outline-danger btn-sm w-100">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Ver / Imprimir Termo de Responsabilidade
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card mb-4">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-laptop fs-1 d-block mb-2 opacity-25"></i>
+    Nenhum equipamento alocado para você no momento.
+  </div>
+</div>
+{% endif %}
+
+{% if historico %}
+<h6 class="fw-bold text-muted mb-3 text-uppercase" style="font-size:.75rem;letter-spacing:.08em">
+  Histórico
+</h6>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
+      <thead class="table-light">
+        <tr>
+          <th>Equipamento</th>
+          <th>Período</th>
+          <th>Estado entrega</th>
+          <th>Estado devolução</th>
+          <th>Termo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for aloc in historico %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ aloc.equipamento.tipo_display }}</div>
+            <div class="text-muted small">
+              {{ aloc.equipamento.marca or '' }}
+              {% if aloc.equipamento.marca and aloc.equipamento.modelo %} — {% endif %}
+              {{ aloc.equipamento.modelo or '' }}
+            </div>
+          </td>
+          <td class="text-nowrap text-muted small">
+            {{ aloc.data_entrega.strftime('%d/%m/%Y') }} →
+            {{ aloc.data_devolucao.strftime('%d/%m/%Y') if aloc.data_devolucao else '—' }}
+            <div>({{ aloc.dias_com_colaborador }} dias)</div>
+          </td>
+          <td class="text-muted small">{{ aloc.estado_entrega_display }}</td>
+          <td class="text-muted small">{{ aloc.estado_devolucao_display }}</td>
+          <td>
+            <a href="{{ url_for('equipamentos.termo_pdf', aloc_id=aloc.id) }}"
+               target="_blank"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

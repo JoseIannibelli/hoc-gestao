@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Folha de Ponto — Visão Geral{% endblock %}
+{% block page_title %}Folha de Ponto — {{ mes_nome }}/{{ ano }}{% endblock %}
+
+{% block content %}
+
+<!-- Navegação de mês -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <a href="{{ url_for('ponto.visao_geral', ano=ano_ant, mes=mes_ant) }}"
+     class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+  <h5 class="fw-bold mb-0">{{ mes_nome }} / {{ ano }}</h5>
+  <a href="{{ url_for('ponto.visao_geral', ano=ano_prx, mes=mes_prx) }}"
+     class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+</div>
+
+<!-- Pendentes de aprovação -->
+{% if pendentes %}
+<div class="card mb-4" style="border-left: 4px solid #f59e0b">
+  <div class="card-header" style="background:#fffbeb">
+    <i class="bi bi-hourglass-split me-2 text-warning"></i>
+    <strong>{{ pendentes|length }}</strong> folha{{ 's' if pendentes|length != 1 else '' }} aguardando aprovação
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Colaborador</th><th>Horas trabalhadas</th><th>Faltas</th><th>Banco de horas</th><th>Observação</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for f in pendentes %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ f.colaborador.foto_url }}" class="avatar" alt="">
+              <span class="fw-semibold">{{ f.colaborador.nome }}</span>
+            </div>
+          </td>
+          <td>{{ f.total_horas_trab | int }}h</td>
+          <td>{{ f.total_faltas }}</td>
+          <td>
+            <span class="{{ 'text-success' if f.saldo_banco_horas >= 0 else 'text-danger' }} fw-bold">
+              {{ f.saldo_formatado }}
+            </span>
+          </td>
+          <td><small class="text-muted">{{ f.observacao_colab or '—' }}</small></td>
+          <td>
+            <button class="btn btn-sm btn-warning"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalAprovar{{ f.id }}">
+              Revisar
+            </button>
+          </td>
+        </tr>
+
+        <!-- Modal aprovação -->
+        <div class="modal fade" id="modalAprovar{{ f.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h6 class="modal-title">
+                  Folha de {{ f.colaborador.nome }} — {{ f.mes_nome }}/{{ f.ano }}
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3 mb-3">
+                  <div class="col-4 text-center">
+                    <div class="fw-bold fs-5">{{ f.total_horas_trab | int }}h</div>
+                    <small class="text-muted">Horas trabalhadas</small>
+                  </div>
+                  <div class="col-4 text-center">
+                    <div class="fw-bold fs-5 text-danger">{{ f.total_faltas }}</div>
+                    <small class="text-muted">Faltas</small>
+                  </div>
+                  <div class="col-4 text-center">
+                    <div class="fw-bold fs-5 {{ 'text-success' if f.saldo_banco_horas >= 0 else 'text-danger' }}">
+                      {{ f.saldo_formatado }}
+                    </div>
+                    <small class="text-muted">Banco de horas</small>
+                  </div>
+                </div>
+                {% if f.observacao_colab %}
+                <div class="alert alert-info py-2 small">
+                  <strong>Obs. colaborador:</strong> {{ f.observacao_colab }}
+                </div>
+                {% endif %}
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">Observação do gestor (opcional)</label>
+                  <textarea id="obs-gestor-{{ f.id }}" class="form-control" rows="2"
+                            placeholder="Comentário para o colaborador…"></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('ponto.aprovar', fechamento_id=f.id) }}" class="d-inline" id="form-rejeitar-{{ f.id }}">
+                  <input type="hidden" name="acao" value="rejeitar">
+                  <input type="hidden" name="observacao_gestor" id="obs-rej-{{ f.id }}">
+                  <button type="submit" class="btn btn-outline-danger"
+                          onclick="document.getElementById('obs-rej-{{ f.id }}').value=document.getElementById('obs-gestor-{{ f.id }}').value"
+                          >Rejeitar</button>
+                </form>
+                <form method="POST" action="{{ url_for('ponto.aprovar', fechamento_id=f.id) }}" class="d-inline" id="form-aprovar-{{ f.id }}">
+                  <input type="hidden" name="acao" value="aprovar">
+                  <input type="hidden" name="observacao_gestor" id="obs-apr-{{ f.id }}">
+                  <button type="submit" class="btn btn-success"
+                          onclick="document.getElementById('obs-apr-{{ f.id }}').value=document.getElementById('obs-gestor-{{ f.id }}').value"
+                          >Aprovar</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Situação geral -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-people me-2"></i>Situação dos colaboradores</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Colaborador</th>
+          <th>Horas trab.</th>
+          <th>Faltas</th>
+          <th>Banco de horas</th>
+          <th>Status folha</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in situacao %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ s.colaborador.foto_url }}" class="avatar" alt="">
+              <div>
+                <div class="fw-semibold">{{ s.colaborador.nome }}</div>
+                <small class="text-muted">{{ s.colaborador.cargo or '—' }}</small>
+              </div>
+            </div>
+          </td>
+          <td>{{ s.totais.total_horas_trab | int }}h</td>
+          <td>
+            <span class="{{ 'text-danger fw-bold' if s.totais.total_faltas > 0 else 'text-muted' }}">
+              {{ s.totais.total_faltas }}
+            </span>
+          </td>
+          <td>
+            {% set saldo = s.totais.saldo_banco_horas %}
+            {% set sh = saldo | abs | int %}
+            {% set sm = ((saldo | abs - sh) * 60) | int %}
+            <span class="{{ 'text-success' if saldo >= 0 else 'text-danger' }} fw-bold">
+              {{ '+' if saldo >= 0 else '-' }}{{ '%02d' % sh }}:{{ '%02d' % sm }}
+            </span>
+          </td>
+          <td>
+            {% if s.fechamento %}
+            <span class="badge rounded-pill"
+                  style="background:{{ s.fechamento.status_info.bg }};color:{{ s.fechamento.status_info.color }}">
+              {{ s.fechamento.status_info.label }}
+            </span>
+            {% else %}
+            <span class="badge rounded-pill" style="background:#f1f5f9;color:#94a3b8">Em aberto</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('ponto.detalhe_colaborador', colaborador_id=s.colaborador.id, ano=ano, mes=mes) }}"
+               class="btn btn-sm btn-outline-secondary">Ver detalhes</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

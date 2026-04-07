@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Aprovar Correções de Ponto{% endblock %}
+{% block page_title %}Aprovar Correções de Ponto{% endblock %}
+
+{% block content %}
+
+<!-- Filtros e contadores -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('ponto.gerenciar_correcoes', filtro='pendente') }}"
+     class="btn btn-sm {{ 'btn-warning' if filtro == 'pendente' else 'btn-outline-secondary' }}">
+    <i class="bi bi-hourglass-split me-1"></i>Pendentes
+    <span class="badge bg-dark ms-1">{{ contagens.pendente }}</span>
+  </a>
+  <a href="{{ url_for('ponto.gerenciar_correcoes', filtro='aprovada') }}"
+     class="btn btn-sm {{ 'btn-success' if filtro == 'aprovada' else 'btn-outline-secondary' }}">
+    <i class="bi bi-check-circle me-1"></i>Aprovadas
+    <span class="badge bg-dark ms-1">{{ contagens.aprovada }}</span>
+  </a>
+  <a href="{{ url_for('ponto.gerenciar_correcoes', filtro='rejeitada') }}"
+     class="btn btn-sm {{ 'btn-danger' if filtro == 'rejeitada' else 'btn-outline-secondary' }}">
+    <i class="bi bi-x-circle me-1"></i>Rejeitadas
+    <span class="badge bg-dark ms-1">{{ contagens.rejeitada }}</span>
+  </a>
+  <a href="{{ url_for('ponto.visao_geral') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="bi bi-arrow-left me-1"></i>Visão Geral
+  </a>
+</div>
+
+{% if correcoes %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
+      <thead class="table-light">
+        <tr>
+          <th>Colaborador</th>
+          <th>Data corrigida</th>
+          <th>Original</th>
+          <th>Solicitado</th>
+          <th>Motivo</th>
+          <th>Enviado em</th>
+          <th>Status</th>
+          {% if filtro == 'pendente' %}<th>Ações</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for sol in correcoes %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ sol.colaborador.foto_url }}" class="avatar" alt="">
+              <div>
+                <div class="fw-semibold">{{ sol.colaborador.nome }}</div>
+                <div class="text-muted small">{{ sol.colaborador.cargo or '—' }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="text-nowrap">
+            <span class="fw-semibold">{{ sol.data_registro.strftime('%d/%m/%Y') }}</span>
+            <div class="text-muted small">
+              {{ ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'][sol.data_registro.weekday()] }}
+            </div>
+          </td>
+          <td style="font-size:.8rem">
+            <div><span class="badge bg-light text-dark border">{{ sol.tipo_orig_display }}</span></div>
+            <div class="text-muted mt-1">
+              {{ sol.fmt_time(sol.entrada_orig) }} →
+              {{ sol.fmt_time(sol.saida_orig) }}
+            </div>
+          </td>
+          <td style="font-size:.8rem">
+            <div><span class="badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a">{{ sol.tipo_novo_display }}</span></div>
+            <div class="text-dark mt-1 fw-semibold">
+              {{ sol.fmt_time(sol.entrada_novo) }} →
+              {{ sol.fmt_time(sol.saida_novo) }}
+            </div>
+            {% if sol.inicio_almoco_novo or sol.retorno_almoco_novo %}
+            <div class="text-muted" style="font-size:.74rem">
+              almoço: {{ sol.fmt_time(sol.inicio_almoco_novo) }}–{{ sol.fmt_time(sol.retorno_almoco_novo) }}
+            </div>
+            {% endif %}
+          </td>
+          <td style="max-width:200px">
+            <span class="text-muted small">{{ sol.motivo }}</span>
+          </td>
+          <td class="text-nowrap text-muted small">
+            {{ sol.created_at.strftime('%d/%m/%Y') }}<br>
+            {{ sol.created_at.strftime('%H:%M') }}
+          </td>
+          <td>
+            <span class="badge rounded-pill"
+                  style="background:{{ sol.status_info.bg }};color:{{ sol.status_info.color }}">
+              {{ sol.status_info.label }}
+            </span>
+            {% if sol.status in ('aprovada','rejeitada') and sol.observacao_gestor %}
+            <div class="text-muted small mt-1">{{ sol.observacao_gestor }}</div>
+            {% endif %}
+          </td>
+          {% if filtro == 'pendente' %}
+          <td class="text-nowrap">
+            <button class="btn btn-sm btn-success me-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalResolver"
+                    onclick="abrirModal({{ sol.id }}, '{{ sol.colaborador.nome }}',
+                             '{{ sol.data_registro.strftime('%d/%m/%Y') }}', 'aprovar')">
+              <i class="bi bi-check-lg"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalResolver"
+                    onclick="abrirModal({{ sol.id }}, '{{ sol.colaborador.nome }}',
+                             '{{ sol.data_registro.strftime('%d/%m/%Y') }}', 'rejeitar')">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+    Nenhuma solicitação {{ filtro }}.
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal aprovar/rejeitar -->
+{% if filtro == 'pendente' %}
+<div class="modal fade" id="modalResolver" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="form-resolver" method="POST" action="">
+        <div class="modal-header">
+          <h6 class="modal-title" id="modal-titulo">Resolver solicitação</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="modal-descricao" class="text-muted small mb-3"></p>
+          <input type="hidden" name="acao" id="campo-acao" value="aprovar">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Observação para o colaborador</label>
+            <textarea name="observacao_gestor" class="form-control" rows="3"
+                      placeholder="Opcional…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn" id="btn-confirmar">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function abrirModal(id, colaborador, data, acao) {
+  const form = document.getElementById('form-resolver');
+  form.action = `/ponto/gestor/correcoes/${id}`;
+  document.getElementById('campo-acao').value = acao;
+
+  const titulo = document.getElementById('modal-titulo');
+  const descr  = document.getElementById('modal-descricao');
+  const btn    = document.getElementById('btn-confirmar');
+
+  if (acao === 'aprovar') {
+    titulo.textContent = 'Aprovar correção';
+    descr.textContent  = `Aprovar correção de ${colaborador} em ${data}? O registro será atualizado imediatamente.`;
+    btn.className = 'btn btn-success';
+    btn.textContent = 'Aprovar e aplicar';
+  } else {
+    titulo.textContent = 'Rejeitar correção';
+    descr.textContent  = `Rejeitar a solicitação de ${colaborador} em ${data}. O registro original será mantido.`;
+    btn.className = 'btn btn-danger';
+    btn.textContent = 'Rejeitar';
+  }
+}
+</script>
+{% endblock %}

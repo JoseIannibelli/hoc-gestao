@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Equipamentos{% endblock %}
+{% block page_title %}Controle de Equipamentos{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-pill {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.card-contador { border-radius: 12px; border: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-4">
+  {% for s in status_list %}
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('equipamentos.lista', status=s[0]) }}"
+       class="text-decoration-none">
+      <div class="card card-contador text-center py-3 {{ 'border border-2' if filtro_status == s[0] else '' }}"
+           style="border-color:{{ s[3] }} !important">
+        <div class="fw-bold fs-3" style="color:{{ s[3] }}">
+          {{ contadores[s[0]] }}
+        </div>
+        <div class="text-muted small">{{ s[1] }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filtros + botão novo -->
+<div class="card mb-4">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control"
+                 placeholder="Buscar marca, modelo, série…" value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <select name="tipo" class="form-select form-select-sm">
+          <option value="">Todos os tipos</option>
+          {% for val, label in tipos %}
+          <option value="{{ val }}" {{ 'selected' if filtro_tipo == val }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos os status</option>
+          {% for s in status_list %}
+          <option value="{{ s[0] }}" {{ 'selected' if filtro_status == s[0] }}>{{ s[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+          <i class="bi bi-funnel me-1"></i>Filtrar
+        </button>
+      </div>
+      <div class="col-6 col-md-1 text-end">
+        <a href="{{ url_for('equipamentos.lista') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabela -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-laptop me-2"></i>{{ equipamentos | length }} equipamento(s)</span>
+    {% if current_user.is_gestor() %}
+    <a href="{{ url_for('equipamentos.novo') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Novo Equipamento
+    </a>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
+      <thead class="table-light">
+        <tr>
+          <th>Equipamento</th>
+          <th>Série / Patrimônio</th>
+          <th>Status</th>
+          <th>Colaborador atual</th>
+          <th>Desde</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eq in equipamentos %}
+        {% set aloc = eq.alocacao_ativa %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ eq.tipo_display }}</div>
+            <div class="text-muted small">
+              {{ eq.marca or '' }}{% if eq.marca and eq.modelo %} — {% endif %}{{ eq.modelo or '' }}
+            </div>
+          </td>
+          <td class="text-muted small">
+            {% if eq.numero_serie %}
+            <div><i class="bi bi-upc me-1"></i>{{ eq.numero_serie }}</div>
+            {% endif %}
+            {% if eq.numero_patrimonio %}
+            <div><i class="bi bi-tag me-1"></i>{{ eq.numero_patrimonio }}</div>
+            {% endif %}
+            {% if not eq.numero_serie and not eq.numero_patrimonio %}—{% endif %}
+          </td>
+          <td>
+            <span class="status-pill"
+                  style="background:{{ eq.status_info.bg }};color:{{ eq.status_info.color }}">
+              {{ eq.status_info.label }}
+            </span>
+          </td>
+          <td>
+            {% if aloc %}
+            <div class="d-flex align-items-center gap-2">
+              <img src="{{ aloc.colaborador.foto_url }}" class="avatar" alt="">
+              <span class="small fw-semibold">{{ aloc.colaborador.nome }}</span>
+            </div>
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">
+            {{ aloc.data_entrega.strftime('%d/%m/%Y') if aloc else '—' }}
+          </td>
+          <td>
+            <a href="{{ url_for('equipamentos.detalhe', id=eq.id) }}"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">
+            <i class="bi bi-laptop fs-2 d-block mb-2 opacity-25"></i>
+            Nenhum equipamento encontrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

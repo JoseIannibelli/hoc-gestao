@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Solicitar Correção de Ponto{% endblock %}
+{% block page_title %}Solicitar Correção de Ponto{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline-item {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+.timeline-item::before {
+  content: '';
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+  position: absolute;
+  left: -6.5px; top: 4px;
+}
+.timeline-item.pendente::before  { background: #f59e0b; }
+.timeline-item.aprovada::before  { background: #10B981; }
+.timeline-item.rejeitada::before { background: #EF4444; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+
+  <!-- Formulário nova solicitação -->
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2 text-warning"></i>Nova solicitação de correção
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Para corrigir um registro de dia passado ou em mês fechado, preencha abaixo.
+          A correção ficará <strong>pendente de aprovação</strong> do gestor.
+        </p>
+
+        <form method="POST" action="{{ url_for('ponto.nova_correcao') }}"
+              id="form-correcao" class="needs-validation" novalidate>
+
+          <!-- Data -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Data a corrigir <span class="text-danger">*</span>
+            </label>
+            <input type="date" name="data_registro" id="campo-data"
+                   class="form-control"
+                   max="{{ (hoje - import_timedelta(1)).isoformat() if false else hoje.strftime('%Y-%m-%d') }}"
+                   value="{{ data_pre.strftime('%Y-%m-%d') if data_pre else '' }}"
+                   onchange="buscarRegistroAtual(this.value)"
+                   required>
+            <div class="invalid-feedback">Informe a data.</div>
+            <div class="form-text">Somente dias passados.</div>
+          </div>
+
+          <!-- Registro atual (preenchido via JS) -->
+          <div id="div-registro-atual" class="alert alert-secondary py-2 mb-3" style="display:none;font-size:.82rem">
+            <strong>Registro atual:</strong>
+            <span id="txt-registro-atual">—</span>
+          </div>
+
+          <!-- Tipo solicitado -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Tipo do dia (solicitado) <span class="text-danger">*</span>
+            </label>
+            <select name="tipo_novo" id="campo-tipo" class="form-select"
+                    onchange="toggleHorarios(this.value)" required>
+              {% for val, label in tipos_ocorrencia %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Horários solicitados -->
+          <div id="div-horarios">
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Entrada</label>
+                <input type="time" name="entrada_novo" id="campo-entrada" class="form-control">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Início almoço</label>
+                <input type="time" name="inicio_almoco_novo" id="campo-ini-alm" class="form-control">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Retorno almoço</label>
+                <input type="time" name="retorno_almoco_novo" id="campo-ret-alm" class="form-control">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Saída</label>
+                <input type="time" name="saida_novo" id="campo-saida" class="form-control">
+              </div>
+            </div>
+          </div>
+
+          <!-- Motivo (obrigatório) -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Motivo da correção <span class="text-danger">*</span>
+            </label>
+            <textarea name="motivo" class="form-control" rows="3"
+                      placeholder="Descreva por que o registro precisa ser corrigido…"
+                      required minlength="10"></textarea>
+            <div class="invalid-feedback">Informe o motivo (mínimo 10 caracteres).</div>
+          </div>
+
+          <button type="submit" class="btn btn-warning w-100 fw-semibold"
+                  onclick="return validarForm()">
+            <i class="bi bi-send me-1"></i>Enviar solicitação
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico de solicitações -->
+  <div class="col-12 col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Minhas solicitações</span>
+        <span class="badge bg-secondary">{{ historico | length }}</span>
+      </div>
+      <div class="card-body">
+        {% if historico %}
+
+        <div style="max-height: 600px; overflow-y:auto; padding-right:.25rem">
+          {% for sol in historico %}
+          <div class="timeline-item {{ sol.status }}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="fw-semibold">{{ sol.data_registro.strftime('%d/%m/%Y') }}</span>
+                <span class="text-muted small ms-2">
+                  ({{ ['seg','ter','qua','qui','sex','sáb','dom'][sol.data_registro.weekday()] }})
+                </span>
+              </div>
+              <span class="badge rounded-pill"
+                    style="background:{{ sol.status_info.bg }};color:{{ sol.status_info.color }};font-size:.72rem">
+                {{ sol.status_info.label }}
+              </span>
+            </div>
+
+            <div class="mt-1 small">
+              <span class="text-muted">Solicitado em {{ sol.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+            </div>
+
+            <!-- Comparativo original x solicitado -->
+            <div class="row g-1 mt-2" style="font-size:.78rem">
+              <div class="col-6">
+                <div class="text-muted fw-semibold mb-1">Original</div>
+                <div>Tipo: {{ sol.tipo_orig_display }}</div>
+                <div>Entrada: {{ sol.fmt_time(sol.entrada_orig) }}</div>
+                <div>Saída: {{ sol.fmt_time(sol.saida_orig) }}</div>
+              </div>
+              <div class="col-6">
+                <div class="fw-semibold mb-1" style="color:#f59e0b">Solicitado</div>
+                <div>Tipo: {{ sol.tipo_novo_display }}</div>
+                <div>Entrada: {{ sol.fmt_time(sol.entrada_novo) }}</div>
+                <div>Saída: {{ sol.fmt_time(sol.saida_novo) }}</div>
+              </div>
+            </div>
+
+            {% if sol.motivo %}
+            <div class="mt-2 small text-muted">
+              <i class="bi bi-chat-left-text me-1"></i>{{ sol.motivo }}
+            </div>
+            {% endif %}
+
+            {% if sol.status == 'rejeitada' and sol.observacao_gestor %}
+            <div class="mt-2 small text-danger">
+              <i class="bi bi-x-circle me-1"></i>Gestor: {{ sol.observacao_gestor }}
+            </div>
+            {% elif sol.status == 'aprovada' and sol.aprovado_em %}
+            <div class="mt-2 small text-success">
+              <i class="bi bi-check-circle me-1"></i>Aprovada em {{ sol.aprovado_em.strftime('%d/%m/%Y') }}
+              {% if sol.observacao_gestor %} — {{ sol.observacao_gestor }}{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+          Nenhuma solicitação de correção ainda.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Registros do mês carregados via dados embutidos pelo servidor
+// Para busca dinâmica, usamos fetch ao endpoint de dados do dia
+function buscarRegistroAtual(dataIso) {
+  const div = document.getElementById('div-registro-atual');
+  const txt = document.getElementById('txt-registro-atual');
+  if (!dataIso) { div.style.display = 'none'; return; }
+  div.style.display = 'block';
+  txt.textContent = 'Carregando…';
+  fetch(`/ponto/api/registro?data=${dataIso}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.encontrado) {
+        txt.textContent = `${d.tipo_display} | Entrada: ${d.entrada||'—'} | Saída: ${d.saida||'—'}`;
+        // Pré-preenche campos
+        document.getElementById('campo-entrada').value  = d.entrada || '';
+        document.getElementById('campo-ini-alm').value  = d.inicio_almoco || '';
+        document.getElementById('campo-ret-alm').value  = d.retorno_almoco || '';
+        document.getElementById('campo-saida').value    = d.saida || '';
+        document.getElementById('campo-tipo').value     = d.tipo || 'normal';
+        toggleHorarios(d.tipo || 'normal');
+      } else {
+        txt.textContent = 'Nenhum registro encontrado para este dia.';
+      }
+    })
+    .catch(() => { txt.textContent = 'Não foi possível carregar o registro atual.'; });
+}
+
+function toggleHorarios(tipo) {
+  const mostrar = ['normal','meio_periodo'].includes(tipo);
+  document.getElementById('div-horarios').style.display = mostrar ? 'block' : 'none';
+}
+
+function validarForm() {
+  const form = document.getElementById('form-correcao');
+  form.classList.add('was-validated');
+  return form.checkValidity();
+}
+
+// Inicializa se data pré-selecionada
+const dataInicial = document.getElementById('campo-data').value;
+if (dataInicial) buscarRegistroAtual(dataInicial);
+
+toggleHorarios(document.getElementById('campo-tipo').value);
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Busca por Skill — HOC Gestão{% endblock %}
+{% block page_title %}Busca por Skill{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('skills.catalogo') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Catálogo
+  </a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold small">Skill</label>
+        <select name="skill_id" class="form-select" required>
+          <option value="">Selecione uma skill…</option>
+          {% for s in skills %}
+          <option value="{{ s.id }}" {% if skill_id_sel == s.id %}selected{% endif %}>
+            {{ s.nome }} ({{ s.categoria_display }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold small">Nível mínimo</label>
+        <select name="nivel" class="form-select">
+          <option value="">Qualquer nível</option>
+          {% for val, label, _ in niveis %}
+          <option value="{{ val }}" {% if nivel_sel == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-success w-100">
+          <i class="bi bi-search me-1"></i> Buscar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if skill_id_sel %}
+  {% if resultados %}
+  <div class="card">
+    <div class="card-header">
+      <i class="bi bi-people me-2"></i>
+      {{ resultados|length }} colaborador{{ 'es' if resultados|length != 1 else '' }} encontrado{{ 's' if resultados|length != 1 else '' }}
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Colaborador</th>
+            <th>Cargo / Área</th>
+            <th>Nível</th>
+            <th>Experiência</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cs in resultados %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <img src="{{ cs.colaborador.foto_url }}" class="avatar" alt="">
+                <span class="fw-semibold">{{ cs.colaborador.nome }}</span>
+              </div>
+            </td>
+            <td>
+              {{ cs.colaborador.cargo or '—' }}<br>
+              <small class="text-muted">{{ cs.colaborador.area_display }}</small>
+            </td>
+            <td>
+              <span class="badge rounded-pill" style="background:#d1fae5;color:#065f46">
+                {{ cs.nivel_display }}
+              </span>
+            </td>
+            <td>
+              <small>{{ cs.anos_experiencia | int if cs.anos_experiencia == cs.anos_experiencia | int else cs.anos_experiencia }} ano(s)</small>
+            </td>
+            <td>
+              <a href="{{ url_for('colaboradores.detalhe', id=cs.colaborador_id) }}"
+                 class="btn btn-sm btn-outline-secondary">Ver perfil</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-search fs-1 d-block mb-3"></i>
+      Nenhum colaborador encontrado com esta skill.
+    </div>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}
