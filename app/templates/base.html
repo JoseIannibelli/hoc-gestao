@@ -244,11 +244,15 @@
     {% endif %}
 
     {% if current_user.is_admin() %}
-    {# Admin: só gestão de acesso ao sistema #}
+    {# Admin: gestão de acesso ao sistema + comunicados #}
     <span class="nav-section">Sistema</span>
     <a href="{{ url_for('usuarios.lista') }}"
        class="nav-link {% if request.blueprint == 'usuarios' %}active{% endif %}">
       <i class="bi bi-shield-lock"></i> Usuários e Acessos
+    </a>
+    <a href="{{ url_for('comunicados.lista') }}"
+       class="nav-link {% if request.blueprint == 'comunicados' %}active{% endif %}">
+      <i class="bi bi-megaphone-fill" style="color:#f59e0b"></i> Comunicados
     </a>
 
     {% elif current_user.role == 'gestor' %}

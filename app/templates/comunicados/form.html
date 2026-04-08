@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo_pagina }} — HOC Gestão{% endblock %}
+{% block page_title %}{{ titulo_pagina }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-megaphone-fill text-primary"></i>
+        <span>{{ titulo_pagina }}</span>
+      </div>
+      <div class="card-body">
+
+        <form method="POST">
+
+          {# Título #}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Título <span class="text-danger">*</span></label>
+            <input type="text" name="titulo" class="form-control"
+                   value="{{ comunicado.titulo if comunicado else '' }}"
+                   placeholder="Ex.: Aviso sobre feriado de 21/04"
+                   maxlength="200" required>
+          </div>
+
+          {# Tipo + Fixado #}
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Tipo</label>
+              <select name="tipo" class="form-select">
+                {% for val, label in tipos %}
+                <option value="{{ val }}"
+                  {% if comunicado and comunicado.tipo == val %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label fw-semibold">Fixar no topo?</label>
+              <div class="d-flex gap-3 mt-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="fixado" value="1"
+                         id="fixado_sim"
+                         {% if comunicado and comunicado.fixado %}checked{% endif %}>
+                  <label class="form-check-label" for="fixado_sim">Sim</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="fixado" value="0"
+                         id="fixado_nao"
+                         {% if not comunicado or not comunicado.fixado %}checked{% endif %}>
+                  <label class="form-check-label" for="fixado_nao">Não</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label fw-semibold">Ativo?</label>
+              <div class="d-flex gap-3 mt-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="ativo" value="1"
+                         id="ativo_sim"
+                         {% if not comunicado or comunicado.ativo %}checked{% endif %}>
+                  <label class="form-check-label" for="ativo_sim">Sim</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="ativo" value="0"
+                         id="ativo_nao"
+                         {% if comunicado and not comunicado.ativo %}checked{% endif %}>
+                  <label class="form-check-label" for="ativo_nao">Não</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Validade #}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Válido até <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="date" name="expira_em" class="form-control"
+                   value="{{ comunicado.expira_em.strftime('%Y-%m-%d') if comunicado and comunicado.expira_em else '' }}"
+                   style="max-width:220px;">
+            <div class="form-text">Deixe em branco para exibir indefinidamente.</div>
+          </div>
+
+          {# Corpo #}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Conteúdo <span class="text-danger">*</span></label>
+            <textarea name="corpo" class="form-control" rows="6"
+                      placeholder="Digite o comunicado aqui…"
+                      required>{{ comunicado.corpo if comunicado else '' }}</textarea>
+            <div class="form-text">
+              Quebras de linha serão preservadas na exibição.
+            </div>
+          </div>
+
+          {# Botões #}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg me-1"></i>
+              {{ 'Salvar alterações' if comunicado else 'Publicar comunicado' }}
+            </button>
+            <a href="{{ url_for('comunicados.lista') }}" class="btn btn-outline-secondary">
+              Cancelar
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

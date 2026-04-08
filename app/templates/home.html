@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% block title %}Início — HOC Gestão{% endblock %}
+{% block page_title %}Início{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Comunicado cards ───────────────────────────────────── */
+  .comunicado-card {
+    border-left: 4px solid transparent;
+    transition: box-shadow .15s;
+  }
+  .comunicado-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.10) !important; }
+  .comunicado-card.tipo-urgente      { border-color: #EF4444; }
+  .comunicado-card.tipo-informativo  { border-color: #3B82F6; }
+  .comunicado-card.tipo-comemorativo { border-color: #10B981; }
+  .comunicado-card.tipo-aviso        { border-color: #f59e0b; }
+  .comunicado-card.fixado { background: #fefce8; }
+
+  /* ── Atalho grid ────────────────────────────────────────── */
+  .atalho-card {
+    border: none;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    padding: 1.2rem .5rem;
+    text-decoration: none;
+    color: #374151;
+    transition: transform .15s, box-shadow .15s;
+    height: 100%;
+    min-height: 90px;
+  }
+  .atalho-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.13);
+    color: #111827;
+  }
+  .atalho-card i { font-size: 1.5rem; }
+  .atalho-card span { font-size: .78rem; font-weight: 600; text-align: center; line-height: 1.2; }
+
+  /* ── Aniversariante badge ───────────────────────────────── */
+  .aniv-badge {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .85rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Férias row ──────────────────────────────────────────── */
+  .ferias-row { border-bottom: 1px solid #f1f5f9; }
+  .ferias-row:last-child { border-bottom: none; }
+
+  /* ── Section header ─────────────────────────────────────── */
+  .section-header {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: .75rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Saudação ──────────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold" style="color:#1e293b;">
+      {% set hora = hoje.strftime('%H')|int if hoje else 8 %}
+      Olá, {{ current_user.nome.split()[0] }}
+      {% if hora < 12 %} 🌤️{% elif hora < 18 %} ☀️{% else %} 🌙{% endif %}
+    </h4>
+    <small class="text-muted">
+      {{ hoje.strftime('%A, %d de %B de %Y') }}
+    </small>
+  </div>
+  {% if current_user.is_admin() %}
+  <a href="{{ url_for('comunicados.novo') }}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Novo Comunicado
+  </a>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+
+  {# ── Coluna esquerda: comunicados + atalhos ──────────────────────────────── #}
+  <div class="col-12 col-xl-8">
+
+    {# Comunicados #}
+    {% if comunicados %}
+    <div class="mb-4">
+      <p class="section-header"><i class="bi bi-megaphone me-1"></i>Comunicados</p>
+
+      <div class="d-flex flex-column gap-3">
+        {% for c in comunicados %}
+        <div class="card comunicado-card tipo-{{ c.tipo }} {% if c.fixado %}fixado{% endif %} p-0">
+          <div class="card-body py-3 px-4">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                  <span class="badge {{ c.tipo_badge_class }} d-flex align-items-center gap-1" style="font-size:.7rem;">
+                    <i class="bi {{ c.tipo_icon }}"></i> {{ c.tipo_display }}
+                  </span>
+                  {% if c.fixado %}
+                  <span class="badge bg-light text-secondary border" style="font-size:.68rem;">
+                    <i class="bi bi-pin-angle-fill"></i> Fixado
+                  </span>
+                  {% endif %}
+                  {% if c.expira_em %}
+                  <span class="text-muted" style="font-size:.7rem;">
+                    <i class="bi bi-calendar-x"></i> válido até {{ c.expira_em.strftime('%d/%m/%Y') }}
+                  </span>
+                  {% endif %}
+                </div>
+                <h6 class="fw-bold mb-1" style="color:#1e293b;">{{ c.titulo }}</h6>
+                <p class="mb-0 text-secondary" style="font-size:.88rem;white-space:pre-line;">{{ c.corpo }}</p>
+              </div>
+              {% if current_user.is_admin() %}
+              <div class="d-flex gap-1 flex-shrink-0">
+                <a href="{{ url_for('comunicados.editar', id=c.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST" action="{{ url_for('comunicados.excluir', id=c.id) }}"
+                      onsubmit="return confirm('Remover este comunicado?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+            <div class="mt-2" style="font-size:.72rem;color:#94a3b8;">
+              <i class="bi bi-person"></i>
+              {{ c.autor.nome if c.autor else 'HOC' }} ·
+              {{ c.created_at.strftime('%d/%m/%Y às %H:%M') }}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card mb-4">
+      <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-megaphone fs-3 d-block mb-2 opacity-25"></i>
+        Nenhum comunicado no momento.
+      </div>
+    </div>
+    {% endif %}
+
+    {# Atalhos rápidos #}
+    {% if atalhos %}
+    <div class="mb-2">
+      <p class="section-header"><i class="bi bi-lightning me-1"></i>Acesso Rápido</p>
+      <div class="row g-2">
+        {% for a in atalhos %}
+        <div class="col-6 col-sm-4 col-md-3">
+          <a href="{{ a.url }}" class="atalho-card">
+            <i class="bi {{ a.icon }}" style="color:{{ a.cor }};"></i>
+            <span>{{ a.label }}</span>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>{# /col-esquerda #}
+
+  {# ── Coluna direita: projetos + aniversariantes + férias ─────────────────── #}
+  <div class="col-12 col-xl-4">
+
+    {# Meus Projetos #}
+    {% if meus_projetos %}
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-kanban me-2" style="color:#8B5CF6"></i>Meus Projetos</span>
+        <a href="{{ url_for('projetos.lista') }}" class="btn btn-sm btn-outline-secondary py-0 px-2"
+           style="font-size:.75rem;">Ver todos</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for aloc in meus_projetos %}
+        <li class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <div class="fw-semibold" style="font-size:.88rem;color:#1e293b;">
+                {{ aloc.projeto.nome }}
+              </div>
+              <div class="text-muted" style="font-size:.75rem;">
+                {{ aloc.papel or 'Membro' }}
+                {% if aloc.percentual %} · {{ aloc.percentual }}%{% endif %}
+              </div>
+            </div>
+            <span class="badge rounded-pill
+              {% if aloc.projeto.status == 'em_andamento' %}bg-success
+              {% elif aloc.projeto.status == 'planejamento' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}"
+              style="font-size:.68rem;white-space:nowrap;">
+              {{ aloc.projeto.status.replace('_',' ').title() }}
+            </span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Aniversariantes do Mês #}
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-gift me-2" style="color:#EC4899"></i>Aniversariantes de
+        {{ hoje.strftime('%B') }}
+      </div>
+      {% if aniversariantes %}
+      <ul class="list-group list-group-flush">
+        {% for pessoa in aniversariantes %}
+        {% set dia = pessoa.data_nascimento.day %}
+        {% set e_hoje = (pessoa.data_nascimento.day == hoje.day and
+                          pessoa.data_nascimento.month == hoje.month) %}
+        <li class="list-group-item py-2 px-3 d-flex align-items-center gap-3
+                   {% if e_hoje %}bg-pink-subtle{% endif %}">
+          {# Avatar colorido com inicial #}
+          {% set cores_aniv = ['#3B82F6','#10B981','#8B5CF6','#EF4444','#f59e0b','#EC4899'] %}
+          {% set cor_idx = loop.index0 % cores_aniv|length %}
+          <div class="aniv-badge" style="background:{{ cores_aniv[cor_idx] }}20;color:{{ cores_aniv[cor_idx] }};">
+            {{ pessoa.nome[0].upper() }}
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold" style="font-size:.88rem;">{{ pessoa.nome }}</div>
+            <div class="text-muted" style="font-size:.74rem;">
+              {{ pessoa.cargo or pessoa.area or '' }}
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold" style="font-size:.95rem;color:#EC4899;">{{ '%02d'|format(dia) }}</div>
+            {% if e_hoje %}
+            <span style="font-size:.8rem;">🎂</span>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="card-body text-center text-muted py-4" style="font-size:.85rem;">
+        <i class="bi bi-calendar-x d-block fs-3 mb-2 opacity-25"></i>
+        Nenhum aniversariante este mês.
+      </div>
+      {% endif %}
+    </div>
+
+    {# Próximas Férias #}
+    {% if ferias %}
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-umbrella me-2" style="color:#10B981"></i>Próximas Férias
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for f in ferias %}
+        <li class="list-group-item py-2 px-3 ferias-row">
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <div>
+              <div class="fw-semibold" style="font-size:.85rem;">
+                {{ f.colaborador.nome.split()[0] }} {{ f.colaborador.nome.split()[-1] }}
+              </div>
+              <div class="text-muted" style="font-size:.74rem;">
+                {{ f.data_inicio.strftime('%d/%m') }} → {{ f.data_fim.strftime('%d/%m/%Y') }}
+              </div>
+            </div>
+            <span class="badge bg-success bg-opacity-10 text-success" style="font-size:.72rem;">
+              {{ f.dias_solicitados }}d
+            </span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+  </div>{# /col-direita #}
+
+</div>{# /row #}
+{% endblock %}
