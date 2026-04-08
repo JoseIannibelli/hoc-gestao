@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Enviar Contracheque — HOC Gestão{% endblock %}
+{% block page_title %}Enviar Contracheque{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-upload me-2" style="color:#10B981"></i>Publicar Contracheque
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Colaborador <span class="text-danger">*</span></label>
+            <select name="colaborador_id" class="form-select" required>
+              <option value="">Selecione o colaborador…</option>
+              {% for c in equipe %}
+              <option value="{{ c.id }}">{{ c.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Mês de competência <span class="text-danger">*</span></label>
+            <select name="mes" class="form-select" required>
+              {% for num, nome in meses %}
+              <option value="{{ num }}" {% if num == mes_atual %}selected{% endif %}>{{ nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Ano <span class="text-danger">*</span></label>
+            <select name="ano" class="form-select" required>
+              {% for a in anos %}
+              <option value="{{ a }}" {% if a == ano_atual %}selected{% endif %}>{{ a }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Arquivo PDF <span class="text-danger">*</span></label>
+            <input type="file" name="arquivo" class="form-control" accept=".pdf" required>
+            <small class="text-muted">Apenas PDF. Se já existir contracheque para este colaborador/mês, será substituído.</small>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Observação</label>
+            <input type="text" name="observacao" class="form-control"
+                   placeholder="Ex.: inclui PLR, 13º parcial…">
+          </div>
+          <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-upload me-1"></i>Publicar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

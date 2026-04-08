@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Meus Dados — HOC Gestão{% endblock %}
+{% block page_title %}Meus Dados Cadastrais{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <form method="POST" enctype="multipart/form-data">
+
+      <!-- Dados Pessoais -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="bi bi-person-circle me-2" style="color:#3B82F6"></i>Dados Pessoais
+        </div>
+        <div class="card-body">
+          <!-- Foto -->
+          <div class="d-flex align-items-center gap-4 mb-4">
+            <img src="{{ colab.foto_url }}" class="avatar-lg" alt="Foto">
+            <div>
+              <label class="form-label small fw-semibold mb-1">Foto do perfil</label>
+              <input type="file" name="foto" class="form-control form-control-sm"
+                     accept=".png,.jpg,.jpeg,.webp" style="max-width:280px">
+              <small class="text-muted">PNG, JPG ou WEBP · máx. 2 MB</small>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Nome e e-mail: somente leitura -->
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nome completo</label>
+              <input type="text" class="form-control bg-light" value="{{ colab.nome }}" disabled>
+              <small class="text-muted">Alteração de nome deve ser solicitada ao gestor.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">E-mail</label>
+              <input type="email" class="form-control bg-light" value="{{ colab.email }}" disabled>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Telefone / WhatsApp</label>
+              <input type="text" name="telefone" class="form-control"
+                     value="{{ colab.telefone or '' }}"
+                     placeholder="(11) 99999-9999">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Data de nascimento</label>
+              <input type="date" name="data_nascimento" class="form-control"
+                     value="{{ colab.data_nascimento.strftime('%Y-%m-%d') if colab.data_nascimento else '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">CPF</label>
+              <input type="text" class="form-control bg-light"
+                     value="{{ colab.cpf or '—' }}" disabled>
+            </div>
+
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold">Cidade</label>
+              <input type="text" name="cidade" class="form-control"
+                     value="{{ colab.cidade or '' }}" placeholder="Sua cidade">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Estado</label>
+              <select name="estado" class="form-select">
+                <option value="">Selecione…</option>
+                {% for sigla, nome in estados %}
+                <option value="{{ sigla }}" {% if colab.estado == sigla %}selected{% endif %}>{{ sigla }} — {{ nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">LinkedIn</label>
+              <div class="input-group">
+                <span class="input-group-text" style="font-size:.8rem">linkedin.com/in/</span>
+                <input type="text" name="linkedin" class="form-control"
+                       value="{{ colab.linkedin or '' }}" placeholder="seu-perfil">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados Profissionais — somente leitura -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="bi bi-briefcase me-2" style="color:#8B5CF6"></i>Dados Profissionais
+          <span class="badge ms-2 rounded-pill" style="background:#ede9fe;color:#6d28d9;font-size:.7rem">
+            <i class="bi bi-lock me-1"></i>Gerenciado pelo Gestor
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Cargo</label>
+              <input type="text" class="form-control bg-light" value="{{ colab.cargo or '—' }}" disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Área</label>
+              <input type="text" class="form-control bg-light" value="{{ colab.area_display }}" disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Senioridade</label>
+              <input type="text" class="form-control bg-light" value="{{ colab.senioridade_display }}" disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Regime</label>
+              <input type="text" class="form-control bg-light" value="{{ colab.regime_display }}" disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Data de admissão</label>
+              <input type="text" class="form-control bg-light"
+                     value="{{ colab.data_admissao.strftime('%d/%m/%Y') if colab.data_admissao else '—' }}" disabled>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo profissional -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <i class="bi bi-file-text me-2" style="color:#10B981"></i>Resumo Profissional
+        </div>
+        <div class="card-body">
+          <textarea name="bio" class="form-control" rows="4"
+                    maxlength="1000"
+                    placeholder="Descreva brevemente sua experiência e especialidades…">{{ colab.bio or '' }}</textarea>
+          <small class="text-muted">Máx. 1000 caracteres</small>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mb-4">
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Salvar alterações
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

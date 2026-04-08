@@ -21,15 +21,16 @@ def create_app(config_name='default'):
     login_manager.init_app(app)
 
     # Blueprints
-    from app.routes.main         import main_bp
-    from app.routes.auth         import auth_bp
+    from app.routes.main          import main_bp
+    from app.routes.auth          import auth_bp
     from app.routes.colaboradores import colaboradores_bp
-    from app.routes.usuarios     import usuarios_bp
-    from app.routes.skills       import skills_bp
-    from app.routes.projetos     import projetos_bp
-    from app.routes.avaliacoes   import avaliacoes_bp
-    from app.routes.ponto        import ponto_bp
-    from app.routes.equipamentos import equipamentos_bp
+    from app.routes.usuarios      import usuarios_bp
+    from app.routes.skills        import skills_bp
+    from app.routes.projetos      import projetos_bp
+    from app.routes.avaliacoes    import avaliacoes_bp
+    from app.routes.ponto         import ponto_bp
+    from app.routes.equipamentos  import equipamentos_bp
+    from app.routes.meu_rh        import meu_rh_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -40,6 +41,7 @@ def create_app(config_name='default'):
     app.register_blueprint(avaliacoes_bp)
     app.register_blueprint(ponto_bp)
     app.register_blueprint(equipamentos_bp)
+    app.register_blueprint(meu_rh_bp)
 
     with app.app_context():
         from app.models import User, Colaborador  # noqa
@@ -47,7 +49,9 @@ def create_app(config_name='default'):
         from app.models.projeto     import Projeto, Alocacao                                  # noqa
         from app.models.avaliacao   import CicloAvaliacao, Avaliacao, Meta                   # noqa
         from app.models.ponto       import RegistroPonto, FechamentoPonto, SolicitacaoCorrecao  # noqa
-        from app.models.equipamento import Equipamento, AlocacaoEquipamento                  # noqa
+        from app.models.equipamento  import Equipamento, AlocacaoEquipamento                 # noqa
+        from app.models.contracheque import Contracheque                                     # noqa
+        from app.models.ferias       import PeriodoAquisitivo, SolicitacaoFerias             # noqa
         db.create_all()
 
         # Bootstrap: cria admin automaticamente se não existir nenhum usuário

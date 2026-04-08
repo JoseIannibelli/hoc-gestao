@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Gestão de Férias — HOC Gestão{% endblock %}
+{% block page_title %}Gestão de Férias{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Pendentes -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-hourglass-split me-2" style="color:#f59e0b"></i>Solicitações Pendentes</span>
+        <span class="badge rounded-pill bg-warning text-dark">{{ pendentes|length }}</span>
+      </div>
+      {% if pendentes %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Colaborador</th><th>Período solicitado</th><th>Dias</th><th>Abono</th><th>Obs.</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for s in pendentes %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ s.colaborador.nome }}</div>
+                <small class="text-muted">Solicitado em {{ s.created_at.strftime('%d/%m/%Y') }}</small>
+              </td>
+              <td>{{ s.data_inicio.strftime('%d/%m/%Y') }} → {{ s.data_fim.strftime('%d/%m/%Y') }}</td>
+              <td>{{ s.dias_solicitados }}d</td>
+              <td>
+                {% if s.abono_pecuniario %}
+                <span class="badge bg-info text-dark">{{ s.dias_abono }}d</span>
+                {% else %}—{% endif %}
+              </td>
+              <td><small class="text-muted">{{ s.observacao or '—' }}</small></td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalAprovar{{ s.id }}">
+                  Analisar
+                </button>
+              </td>
+            </tr>
+
+            <!-- Modal aprovar/recusar -->
+            <div class="modal fade" id="modalAprovar{{ s.id }}" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h6 class="modal-title">Analisar solicitação — {{ s.colaborador.nome }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="mb-1"><strong>Período:</strong>
+                      {{ s.data_inicio.strftime('%d/%m/%Y') }} → {{ s.data_fim.strftime('%d/%m/%Y') }}
+                      ({{ s.dias_solicitados }} dias)
+                    </p>
+                    {% if s.abono_pecuniario %}
+                    <p class="mb-1"><strong>Abono pecuniário:</strong> {{ s.dias_abono }} dias</p>
+                    {% endif %}
+                    {% if s.observacao %}
+                    <p class="mb-2"><strong>Obs. colaborador:</strong> {{ s.observacao }}</p>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('meu_rh.ferias_aprovar', id=s.id) }}" id="formAprovar{{ s.id }}">
+                      <div class="mb-3">
+                        <label class="form-label small fw-semibold">Observação do gestor</label>
+                        <textarea name="observacao_gestor" class="form-control" rows="2"
+                                  placeholder="Opcional…"></textarea>
+                      </div>
+                      <input type="hidden" name="acao" id="acao{{ s.id }}">
+                    </form>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="formAprovar{{ s.id }}"
+                            onclick="document.getElementById('acao{{ s.id }}').value='recusar'"
+                            class="btn btn-sm btn-outline-danger">Recusar</button>
+                    <button type="submit" form="formAprovar{{ s.id }}"
+                            onclick="document.getElementById('acao{{ s.id }}').value='aprovar'"
+                            class="btn btn-sm btn-success">Aprovar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-3 text-muted">
+        <small><i class="bi bi-check-circle me-1"></i>Nenhuma solicitação pendente.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Cadastrar período aquisitivo -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-plus-circle me-2" style="color:#8B5CF6"></i>Cadastrar Período Aquisitivo
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('meu_rh.ferias_novo_periodo') }}" class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Colaborador</label>
+            <select name="colaborador_id" class="form-select" required>
+              <option value="">Selecione…</option>
+              {% for c in equipe %}
+              <option value="{{ c.id }}">{{ c.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Data de início do período</label>
+            <input type="date" name="data_inicio" class="form-control" required>
+            <small class="text-muted">Geralmente a data de admissão ou aniversário do contrato.</small>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>Cadastrar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

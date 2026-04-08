@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}Minhas Férias — HOC Gestão{% endblock %}
+{% block page_title %}Minhas Férias{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Períodos aquisitivos -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-calendar2-check me-2" style="color:#8B5CF6"></i>Períodos Aquisitivos
+      </div>
+      <div class="card-body p-0">
+        {% if periodos %}
+        <ul class="list-group list-group-flush">
+          {% for p in periodos %}
+          <li class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold" style="font-size:.9rem">
+                  {{ p.data_inicio.strftime('%d/%m/%Y') }} → {{ p.data_fim.strftime('%d/%m/%Y') }}
+                </div>
+                <small class="text-muted">
+                  Concessivo até: {{ p.data_limite.strftime('%d/%m/%Y') }}
+                  {% if p.esta_vencendo %}
+                  <span class="badge bg-warning text-dark ms-1">Vence em breve</span>
+                  {% endif %}
+                </small>
+              </div>
+              <div class="text-end">
+                <span class="badge rounded-pill
+                  {% if p.status == 'disponivel' %}bg-success
+                  {% elif p.status == 'parcial' %}bg-warning text-dark
+                  {% elif p.status == 'gozado' %}bg-secondary
+                  {% elif p.status == 'vencido' %}bg-danger
+                  {% else %}bg-info text-dark{% endif %}">
+                  {{ p.status_display }}
+                </span>
+                <div class="mt-1" style="font-size:.8rem">
+                  <span class="text-success fw-semibold">{{ p.dias_saldo }}d</span>
+                  <span class="text-muted"> / {{ p.dias_direito }}d</span>
+                </div>
+              </div>
+            </div>
+            <!-- Barra de progresso de gozo -->
+            <div class="progress mt-2" style="height:4px">
+              <div class="progress-bar bg-success"
+                   style="width:{{ ((p.dias_gozados / p.dias_direito) * 100)|int }}%"></div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+          <small>Nenhum período cadastrado.</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Solicitar férias + histórico -->
+  <div class="col-lg-7">
+
+    <!-- Solicitar -->
+    {% if periodo_disponivel %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-send me-2" style="color:#10B981"></i>Solicitar Férias
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('meu_rh.ferias_solicitar') }}" class="row g-3">
+          <input type="hidden" name="periodo_id" value="{{ periodo_disponivel.id }}">
+
+          <div class="col-12">
+            <div class="alert alert-info py-2 mb-0" style="font-size:.85rem">
+              <i class="bi bi-info-circle me-1"></i>
+              Saldo disponível: <strong>{{ periodo_disponivel.dias_saldo }} dias</strong>
+              (período {{ periodo_disponivel.data_inicio.strftime('%d/%m/%Y') }}
+               → {{ periodo_disponivel.data_fim.strftime('%d/%m/%Y') }})
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Início das férias <span class="text-danger">*</span></label>
+            <input type="date" name="data_inicio" class="form-control"
+                   min="{{ hoje.strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Retorno ao trabalho <span class="text-danger">*</span></label>
+            <input type="date" name="data_fim" class="form-control"
+                   min="{{ hoje.strftime('%Y-%m-%d') }}" required>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-check mt-1">
+              <input class="form-check-input" type="checkbox" name="abono_pecuniario"
+                     value="1" id="abono" onchange="toggleAbono(this)">
+              <label class="form-check-label small" for="abono">
+                Abono pecuniário (vender dias)
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6" id="dias_abono_wrap" style="display:none">
+            <label class="form-label small fw-semibold">Dias a vender (máx. 10)</label>
+            <input type="number" name="dias_abono" class="form-control"
+                   min="1" max="10" value="10">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Observação</label>
+            <textarea name="observacao" class="form-control" rows="2"
+                      placeholder="Informações adicionais…"></textarea>
+          </div>
+
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-send me-1"></i>Enviar solicitação
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="card mb-4">
+      <div class="card-body text-center py-3 text-muted">
+        <i class="bi bi-hourglass-split fs-2 d-block mb-2"></i>
+        <small>
+          {% if not periodos %}
+          Nenhum período aquisitivo cadastrado. Solicite ao gestor.
+          {% else %}
+          Não há período disponível para solicitação no momento.
+          {% endif %}
+        </small>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Histórico -->
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-clock-history me-2" style="color:#f59e0b"></i>Histórico de Solicitações
+      </div>
+      {% if solicitacoes %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size:.85rem">
+          <thead class="table-light">
+            <tr><th>Período</th><th>Dias</th><th>Solicitado em</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for s in solicitacoes %}
+            <tr>
+              <td>{{ s.data_inicio.strftime('%d/%m/%y') }} → {{ s.data_fim.strftime('%d/%m/%y') }}</td>
+              <td>{{ s.dias_solicitados }}d</td>
+              <td><small class="text-muted">{{ s.created_at.strftime('%d/%m/%Y') }}</small></td>
+              <td>
+                <span class="badge rounded-pill
+                  {% if s.status == 'aprovada' %}bg-success
+                  {% elif s.status == 'recusada' %}bg-danger
+                  {% elif s.status == 'pendente' %}bg-warning text-dark
+                  {% else %}bg-secondary{% endif %}">
+                  {{ s.status_display }}
+                </span>
+                {% if s.observacao_gestor %}
+                <div class="text-muted" style="font-size:.75rem">{{ s.observacao_gestor }}</div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-3 text-muted">
+        <small>Nenhuma solicitação registrada.</small>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+function toggleAbono(cb) {
+  document.getElementById('dias_abono_wrap').style.display = cb.checked ? '' : 'none';
+}
+</script>
+{% endblock %}
+{% endblock %}

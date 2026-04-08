@@ -208,9 +208,14 @@
       <i class="bi bi-laptop" style="color:#0ea5e9"></i> Equipamentos
     </a>
 
-    <!-- Folha de Ponto — somente para usuários vinculados a um colaborador -->
+    <!-- Meu RH — somente para usuários com perfil de colaborador vinculado -->
     {% if current_user.colaborador_id %}
-    <span class="nav-section">Folha de Ponto</span>
+    <span class="nav-section">Meu RH</span>
+
+    <a href="{{ url_for('meu_rh.dados_cadastrais') }}"
+       class="nav-link {% if request.endpoint == 'meu_rh.dados_cadastrais' %}active{% endif %}">
+      <i class="bi bi-person-vcard" style="color:#3B82F6"></i> Dados Cadastrais
+    </a>
 
     <a href="{{ url_for('ponto.registrar_hoje') }}"
        class="nav-link {% if request.endpoint == 'ponto.registrar_hoje' %}active{% endif %}">
@@ -219,12 +224,22 @@
 
     <a href="{{ url_for('ponto.consultar') }}"
        class="nav-link {% if request.endpoint in ('ponto.consultar','ponto.fechar_mes') %}active{% endif %}">
-      <i class="bi bi-calendar3" style="color:#f59e0b"></i> Consultar Folha
+      <i class="bi bi-calendar3" style="color:#f59e0b"></i> Folha de Ponto
     </a>
 
     <a href="{{ url_for('ponto.correcoes') }}"
        class="nav-link {% if request.endpoint in ('ponto.correcoes','ponto.nova_correcao') %}active{% endif %}">
       <i class="bi bi-pencil-square" style="color:#f59e0b"></i> Solicitar Correção
+    </a>
+
+    <a href="{{ url_for('meu_rh.ferias') }}"
+       class="nav-link {% if request.endpoint in ('meu_rh.ferias','meu_rh.ferias_solicitar') %}active{% endif %}">
+      <i class="bi bi-umbrella" style="color:#10B981"></i> Férias
+    </a>
+
+    <a href="{{ url_for('meu_rh.contracheque') }}"
+       class="nav-link {% if request.endpoint in ('meu_rh.contracheque','meu_rh.contracheque_download') %}active{% endif %}">
+      <i class="bi bi-file-earmark-text" style="color:#10B981"></i> Contracheque
     </a>
     {% endif %}
 
@@ -250,6 +265,16 @@
     <a href="{{ url_for('ponto.gerenciar_correcoes') }}"
        class="nav-link {% if request.endpoint in ('ponto.gerenciar_correcoes','ponto.resolver_correcao') %}active{% endif %}">
       <i class="bi bi-check2-square"></i> Aprovar Correções
+    </a>
+
+    <span class="nav-section">RH / Equipe</span>
+    <a href="{{ url_for('meu_rh.contracheque_upload') }}"
+       class="nav-link {% if request.endpoint == 'meu_rh.contracheque_upload' %}active{% endif %}">
+      <i class="bi bi-upload" style="color:#10B981"></i> Publicar Contracheque
+    </a>
+    <a href="{{ url_for('meu_rh.ferias_gestao') }}"
+       class="nav-link {% if request.endpoint in ('meu_rh.ferias_gestao','meu_rh.ferias_aprovar','meu_rh.ferias_novo_periodo') %}active{% endif %}">
+      <i class="bi bi-umbrella" style="color:#10B981"></i> Gestão de Férias
     </a>
 
     {% elif current_user.role == 'lider' %}
