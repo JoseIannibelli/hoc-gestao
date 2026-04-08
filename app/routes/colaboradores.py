@@ -153,16 +153,16 @@ def editar(id):
 
         colaborador.nome        = _val('nome')
         colaborador.email       = _val('email').lower()
-        colaborador.telefone    = _val('telefone')
-        colaborador.cpf         = _val('cpf')
-        colaborador.cargo       = _val('cargo')
-        colaborador.senioridade = _val('senioridade', strip=False)
-        colaborador.area        = _val('area', strip=False)
-        colaborador.regime      = _val('regime', strip=False)
-        colaborador.cidade      = _val('cidade')
-        colaborador.estado      = _val('estado', strip=False)
-        colaborador.linkedin    = _val('linkedin')
-        colaborador.bio         = _val('bio')
+        colaborador.telefone    = _val('telefone') or None
+        colaborador.cpf         = _val('cpf') or None   # NULL não conflita com UNIQUE
+        colaborador.cargo       = _val('cargo') or None
+        colaborador.senioridade = _val('senioridade', strip=False) or None
+        colaborador.area        = _val('area', strip=False) or None
+        colaborador.regime      = _val('regime', strip=False) or None
+        colaborador.cidade      = _val('cidade') or None
+        colaborador.estado      = _val('estado', strip=False) or None
+        colaborador.linkedin    = _val('linkedin') or None
+        colaborador.bio         = _val('bio') or None
         colaborador.updated_at  = datetime.utcnow()
 
         data_nasc = request.form.get('data_nascimento', '').strip()
@@ -185,16 +185,16 @@ def editar(id):
                 # Re-aplica os valores do form para não perder o que o usuário digitou
                 colaborador.nome        = _val('nome')
                 colaborador.email       = _val('email').lower()
-                colaborador.telefone    = _val('telefone')
-                colaborador.cpf         = _val('cpf')
-                colaborador.cargo       = _val('cargo')
-                colaborador.senioridade = _val('senioridade', strip=False)
-                colaborador.area        = _val('area', strip=False)
-                colaborador.regime      = _val('regime', strip=False)
-                colaborador.cidade      = _val('cidade')
-                colaborador.estado      = _val('estado', strip=False)
-                colaborador.linkedin    = _val('linkedin')
-                colaborador.bio         = _val('bio')
+                colaborador.telefone    = _val('telefone') or None
+                colaborador.cpf         = _val('cpf') or None
+                colaborador.cargo       = _val('cargo') or None
+                colaborador.senioridade = _val('senioridade', strip=False) or None
+                colaborador.area        = _val('area', strip=False) or None
+                colaborador.regime      = _val('regime', strip=False) or None
+                colaborador.cidade      = _val('cidade') or None
+                colaborador.estado      = _val('estado', strip=False) or None
+                colaborador.linkedin    = _val('linkedin') or None
+                colaborador.bio         = _val('bio') or None
                 flash(f'Erro ao salvar: {e}', 'danger')
 
     # Limpa valores "None" string ao carregar o formulário
