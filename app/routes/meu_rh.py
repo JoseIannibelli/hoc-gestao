@@ -377,6 +377,7 @@ def ferias_novo_periodo():
     data_inicio  = request.form.get('data_inicio', '').strip()
     dias_direito = int(request.form.get('dias_direito', 30) or 30)
     dias_gozados = int(request.form.get('dias_gozados', 0) or 0)
+    dias_abono   = int(request.form.get('dias_abono', 0) or 0)
     observacao   = request.form.get('observacao', '').strip() or None
 
     if not colab_id or not data_inicio:
@@ -388,13 +389,14 @@ def ferias_novo_periodo():
     d_fim   = d_ini + relativedelta(years=1) - relativedelta(days=1)
     d_limit = d_fim + relativedelta(years=1)
 
-    # Define status automaticamente com base nas datas e nos dias já gozados
+    # Status calculado considerando gozados + abono
     hoje = date.today()
+    utilizados = dias_gozados + dias_abono
     if d_fim > hoje:
         status = 'em_aquisicao'
-    elif dias_gozados >= dias_direito:
+    elif utilizados >= dias_direito:
         status = 'gozado'
-    elif dias_gozados > 0:
+    elif utilizados > 0:
         status = 'parcial'
     elif d_limit < hoje:
         status = 'vencido'
@@ -408,6 +410,7 @@ def ferias_novo_periodo():
         data_limite    = d_limit,
         dias_direito   = dias_direito,
         dias_gozados   = dias_gozados,
+        dias_abono     = dias_abono,
         status         = status,
         observacao     = observacao,
     )
@@ -426,23 +429,26 @@ def ferias_editar_periodo(id):
 
     dias_direito = int(request.form.get('dias_direito', periodo.dias_direito) or periodo.dias_direito)
     dias_gozados = int(request.form.get('dias_gozados', periodo.dias_gozados) or 0)
+    dias_abono   = int(request.form.get('dias_abono', periodo.dias_abono or 0) or 0)
     observacao   = request.form.get('observacao', '').strip() or None
     status_form  = request.form.get('status', '').strip()
 
     periodo.dias_direito = dias_direito
     periodo.dias_gozados = dias_gozados
+    periodo.dias_abono   = dias_abono
     periodo.observacao   = observacao
     periodo.updated_at   = datetime.utcnow()
 
-    # Recalcula status se não foi informado explicitamente
+    # Recalcula status considerando gozados + abono
     hoje = date.today()
+    utilizados = dias_gozados + dias_abono
     if status_form:
         periodo.status = status_form
     elif periodo.data_fim > hoje:
         periodo.status = 'em_aquisicao'
-    elif dias_gozados >= dias_direito:
+    elif utilizados >= dias_direito:
         periodo.status = 'gozado'
-    elif dias_gozados > 0:
+    elif utilizados > 0:
         periodo.status = 'parcial'
     elif periodo.data_limite < hoje:
         periodo.status = 'vencido'

@@ -12,6 +12,25 @@ login_manager.login_message = 'Por favor, faça login para acessar esta página.
 login_manager.login_message_category = 'warning'
 
 
+def _run_migrations(db):
+    """Aplica ALTER TABLE incrementais para colunas adicionadas após o deploy inicial.
+    SQLite não suporta ADD COLUMN via create_all — executamos manualmente com try/except."""
+    from sqlalchemy import text
+    migrations = [
+        # (tabela, coluna, definição SQL)
+        ('periodos_aquisitivos', 'dias_abono', 'INTEGER DEFAULT 0'),
+    ]
+    with db.engine.connect() as conn:
+        for tabela, coluna, definicao in migrations:
+            try:
+                conn.execute(text(
+                    f'ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}'
+                ))
+                conn.commit()
+            except Exception:
+                pass  # coluna já existe — ignora
+
+
 def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
@@ -56,6 +75,9 @@ def create_app(config_name='default'):
         from app.models.ferias       import PeriodoAquisitivo, SolicitacaoFerias             # noqa
         from app.models.comunicado   import Comunicado                                       # noqa
         db.create_all()
+
+        # Migrações incrementais — ADD COLUMN para colunas novas sem quebrar o DB existente
+        _run_migrations(db)
 
         # Bootstrap: cria admin automaticamente se não existir nenhum usuário
         import os

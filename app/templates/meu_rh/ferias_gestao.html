@@ -186,14 +186,28 @@
 
                 {# Barra de saldo #}
                 <div class="d-flex justify-content-between mb-1" style="font-size:.75rem;color:#64748b;">
-                  <span>{{ p.dias_gozados }}d gozados</span>
+                  <span>
+                    {{ p.dias_gozados }}d gozados
+                    {% if p.dias_abono %}
+                    · <span class="text-info" title="Dias vendidos (abono pecuniário)">
+                        {{ p.dias_abono }}d vendidos
+                      </span>
+                    {% endif %}
+                  </span>
                   <span>{{ p.dias_saldo }}d de saldo</span>
                 </div>
                 <div class="saldo-bar mb-2">
-                  <div class="saldo-bar-fill
-                    {% if p.status == 'vencido' %}bg-danger{% elif p.status == 'gozado' %}bg-secondary{% endif %}"
-                    style="width:{{ [pct, 100]|min }}%;
-                    {% if p.status not in ('vencido','gozado') %}background:#10B981{% endif %}">
+                  {# Segmento gozado #}
+                  <div style="display:flex;height:100%;border-radius:3px;overflow:hidden;">
+                    {% if p.dias_gozados > 0 %}
+                    <div style="width:{{ [(p.dias_gozados / p.dias_direito * 100)|int, 100]|min }}%;
+                                background:#10B981;height:6px;"></div>
+                    {% endif %}
+                    {% if p.dias_abono %}
+                    <div style="width:{{ [(p.dias_abono / p.dias_direito * 100)|int, 100 - (p.dias_gozados / p.dias_direito * 100)|int]|min }}%;
+                                background:#06b6d4;height:6px;"
+                         title="Abono pecuniário"></div>
+                    {% endif %}
                   </div>
                 </div>
 
@@ -242,15 +256,24 @@
                       action="{{ url_for('meu_rh.ferias_editar_periodo', id=p.id) }}">
                   <div class="modal-body">
                     <div class="row g-3">
-                      <div class="col-6">
+                      <div class="col-4">
                         <label class="form-label small fw-semibold">Dias de direito</label>
                         <input type="number" name="dias_direito" class="form-control"
                                value="{{ p.dias_direito }}" min="1" max="30">
                       </div>
-                      <div class="col-6">
-                        <label class="form-label small fw-semibold">Dias já gozados</label>
+                      <div class="col-4">
+                        <label class="form-label small fw-semibold">Dias gozados</label>
                         <input type="number" name="dias_gozados" class="form-control"
                                value="{{ p.dias_gozados }}" min="0" max="{{ p.dias_direito }}">
+                      </div>
+                      <div class="col-4">
+                        <label class="form-label small fw-semibold">
+                          Dias vendidos
+                          <i class="bi bi-info-circle text-muted"
+                             title="Abono pecuniário: dias convertidos em pagamento"></i>
+                        </label>
+                        <input type="number" name="dias_abono" class="form-control"
+                               value="{{ p.dias_abono or 0 }}" min="0" max="10">
                       </div>
                       <div class="col-12">
                         <label class="form-label small fw-semibold">
@@ -323,10 +346,20 @@
             <label class="form-label small fw-semibold">Dias gozados</label>
             <input type="number" name="dias_gozados" class="form-control"
                    value="0" min="0" max="30">
-            <div class="form-text">0 para períodos ainda não usufruídos.</div>
+            <div class="form-text">0 para períodos não usufruídos.</div>
           </div>
 
-          <div class="col-sm-4">
+          <div class="col-sm-2">
+            <label class="form-label small fw-semibold">
+              Dias vendidos
+              <i class="bi bi-info-circle text-muted"
+                 title="Abono pecuniário: dias convertidos em pagamento (máx. 10)"></i>
+            </label>
+            <input type="number" name="dias_abono" class="form-control"
+                   value="0" min="0" max="10">
+          </div>
+
+          <div class="col-sm-2">
             <label class="form-label small fw-semibold">Observação</label>
             <input type="text" name="observacao" class="form-control"
                    placeholder="Ex.: Período histórico 2022/2023">

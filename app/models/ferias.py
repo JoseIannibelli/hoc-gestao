@@ -31,6 +31,7 @@ class PeriodoAquisitivo(db.Model):
     data_limite    = db.Column(db.Date, nullable=False)   # data_fim + 12 meses
     dias_direito   = db.Column(db.Integer, default=30)    # normalmente 30
     dias_gozados   = db.Column(db.Integer, default=0)
+    dias_abono     = db.Column(db.Integer, default=0)     # dias vendidos (abono pecuniário)
     status         = db.Column(db.String(20), default='em_aquisicao')
     observacao     = db.Column(db.Text)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
@@ -42,7 +43,12 @@ class PeriodoAquisitivo(db.Model):
 
     @property
     def dias_saldo(self):
-        return self.dias_direito - self.dias_gozados
+        return self.dias_direito - self.dias_gozados - (self.dias_abono or 0)
+
+    @property
+    def dias_utilizados(self):
+        """Total de dias já comprometidos: gozados + vendidos."""
+        return self.dias_gozados + (self.dias_abono or 0)
 
     @property
     def status_display(self):
