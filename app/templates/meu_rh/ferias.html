@@ -43,10 +43,18 @@
                 </div>
               </div>
             </div>
-            <!-- Barra de progresso de gozo -->
-            <div class="progress mt-2" style="height:4px">
+            <!-- Barra de progresso: verde=gozado, ciano=vendido (abono) -->
+            <div class="progress mt-2" style="height:4px;border-radius:2px;">
+              {% if p.dias_direito > 0 %}
+              {% set pct_gozado = ((p.dias_gozados / p.dias_direito) * 100)|int %}
+              {% set pct_abono  = (((p.dias_abono or 0) / p.dias_direito) * 100)|int %}
               <div class="progress-bar bg-success"
-                   style="width:{{ ((p.dias_gozados / p.dias_direito) * 100)|int }}%"></div>
+                   style="width:{{ pct_gozado }}%"></div>
+              {% if pct_abono > 0 %}
+              <div class="progress-bar" style="width:{{ pct_abono }}%;background:#06b6d4;"
+                   title="{{ p.dias_abono }}d vendidos (abono)"></div>
+              {% endif %}
+              {% endif %}
             </div>
           </li>
           {% endfor %}
