@@ -318,9 +318,25 @@ def ferias_gestao():
                  .order_by(SolicitacaoFerias.created_at)
                  .all())
 
+    # Períodos agrupados por colaborador para visualização histórica
+    from app.models.ferias import STATUS_PERIODO
+    colab_selecionado_id = request.args.get('colab_id', type=int)
+    periodos_colab = []
+    colab_selecionado = None
+    if colab_selecionado_id:
+        colab_selecionado = Colaborador.query.get(colab_selecionado_id)
+        if colab_selecionado:
+            periodos_colab = (PeriodoAquisitivo.query
+                              .filter_by(colaborador_id=colab_selecionado_id)
+                              .order_by(PeriodoAquisitivo.data_inicio)
+                              .all())
+
     return render_template('meu_rh/ferias_gestao.html',
                            equipe=equipe,
                            pendentes=pendentes,
+                           periodos_colab=periodos_colab,
+                           colab_selecionado=colab_selecionado,
+                           status_opcoes=STATUS_PERIODO,
                            hoje=date.today())
 
 
@@ -356,9 +372,12 @@ def ferias_aprovar(id):
 @login_required
 @requer_gestor
 def ferias_novo_periodo():
-    """Gestor cadastra período aquisitivo para um colaborador."""
-    colab_id    = request.form.get('colaborador_id')
-    data_inicio = request.form.get('data_inicio', '').strip()
+    """Gestor cadastra período aquisitivo (novo ou histórico) para um colaborador."""
+    colab_id     = request.form.get('colaborador_id')
+    data_inicio  = request.form.get('data_inicio', '').strip()
+    dias_direito = int(request.form.get('dias_direito', 30) or 30)
+    dias_gozados = int(request.form.get('dias_gozados', 0) or 0)
+    observacao   = request.form.get('observacao', '').strip() or None
 
     if not colab_id or not data_inicio:
         flash('Informe o colaborador e a data de início.', 'danger')
@@ -369,15 +388,86 @@ def ferias_novo_periodo():
     d_fim   = d_ini + relativedelta(years=1) - relativedelta(days=1)
     d_limit = d_fim + relativedelta(years=1)
 
+    # Define status automaticamente com base nas datas e nos dias já gozados
+    hoje = date.today()
+    if d_fim > hoje:
+        status = 'em_aquisicao'
+    elif dias_gozados >= dias_direito:
+        status = 'gozado'
+    elif dias_gozados > 0:
+        status = 'parcial'
+    elif d_limit < hoje:
+        status = 'vencido'
+    else:
+        status = 'disponivel'
+
     periodo = PeriodoAquisitivo(
         colaborador_id = int(colab_id),
         data_inicio    = d_ini,
         data_fim       = d_fim,
         data_limite    = d_limit,
-        dias_direito   = 30,
-        status         = 'em_aquisicao' if d_fim > date.today() else 'disponivel',
+        dias_direito   = dias_direito,
+        dias_gozados   = dias_gozados,
+        status         = status,
+        observacao     = observacao,
     )
     db.session.add(periodo)
     db.session.commit()
-    flash('Período aquisitivo cadastrado.', 'success')
-    return redirect(url_for('meu_rh.ferias_gestao'))
+    flash('Período aquisitivo cadastrado com sucesso.', 'success')
+    return redirect(url_for('meu_rh.ferias_gestao', colab_id=colab_id))
+
+
+@meu_rh_bp.route('/ferias/periodo/<int:id>/editar', methods=['POST'])
+@login_required
+@requer_gestor
+def ferias_editar_periodo(id):
+    """Gestor corrige dados de um período aquisitivo existente."""
+    periodo = PeriodoAquisitivo.query.get_or_404(id)
+
+    dias_direito = int(request.form.get('dias_direito', periodo.dias_direito) or periodo.dias_direito)
+    dias_gozados = int(request.form.get('dias_gozados', periodo.dias_gozados) or 0)
+    observacao   = request.form.get('observacao', '').strip() or None
+    status_form  = request.form.get('status', '').strip()
+
+    periodo.dias_direito = dias_direito
+    periodo.dias_gozados = dias_gozados
+    periodo.observacao   = observacao
+    periodo.updated_at   = datetime.utcnow()
+
+    # Recalcula status se não foi informado explicitamente
+    hoje = date.today()
+    if status_form:
+        periodo.status = status_form
+    elif periodo.data_fim > hoje:
+        periodo.status = 'em_aquisicao'
+    elif dias_gozados >= dias_direito:
+        periodo.status = 'gozado'
+    elif dias_gozados > 0:
+        periodo.status = 'parcial'
+    elif periodo.data_limite < hoje:
+        periodo.status = 'vencido'
+    else:
+        periodo.status = 'disponivel'
+
+    db.session.commit()
+    flash('Período atualizado.', 'success')
+    return redirect(url_for('meu_rh.ferias_gestao', colab_id=periodo.colaborador_id))
+
+
+@meu_rh_bp.route('/ferias/periodo/<int:id>/excluir', methods=['POST'])
+@login_required
+@requer_gestor
+def ferias_excluir_periodo(id):
+    """Remove um período aquisitivo (somente se não tiver solicitações aprovadas)."""
+    periodo = PeriodoAquisitivo.query.get_or_404(id)
+    colab_id = periodo.colaborador_id
+
+    aprovadas = periodo.solicitacoes.filter_by(status='aprovada').count()
+    if aprovadas > 0:
+        flash('Não é possível remover um período com férias já aprovadas.', 'danger')
+        return redirect(url_for('meu_rh.ferias_gestao', colab_id=colab_id))
+
+    db.session.delete(periodo)
+    db.session.commit()
+    flash('Período removido.', 'info')
+    return redirect(url_for('meu_rh.ferias_gestao', colab_id=colab_id))

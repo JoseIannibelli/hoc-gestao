@@ -2,10 +2,24 @@
 {% block title %}Gestão de Férias — HOC Gestão{% endblock %}
 {% block page_title %}Gestão de Férias{% endblock %}
 
+{% block extra_css %}
+<style>
+  .periodo-card { border-left: 4px solid #e2e8f0; transition: box-shadow .15s; }
+  .periodo-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .periodo-card.status-disponivel  { border-color: #10B981; }
+  .periodo-card.status-parcial     { border-color: #f59e0b; }
+  .periodo-card.status-gozado      { border-color: #94a3b8; }
+  .periodo-card.status-vencido     { border-color: #EF4444; }
+  .periodo-card.status-em_aquisicao{ border-color: #3B82F6; }
+  .saldo-bar { height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+  .saldo-bar-fill { height: 100%; border-radius: 3px; background: #10B981; transition: width .3s; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row g-4">
 
-  <!-- Pendentes -->
+  {# ── Solicitações Pendentes ─────────────────────────────────────────────── #}
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-between">
@@ -16,7 +30,14 @@
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
-            <tr><th>Colaborador</th><th>Período solicitado</th><th>Dias</th><th>Abono</th><th>Obs.</th><th></th></tr>
+            <tr>
+              <th>Colaborador</th>
+              <th>Período solicitado</th>
+              <th>Dias</th>
+              <th>Abono</th>
+              <th>Obs.</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
             {% for s in pendentes %}
@@ -42,7 +63,7 @@
               </td>
             </tr>
 
-            <!-- Modal aprovar/recusar -->
+            {# Modal aprovar/recusar #}
             <div class="modal fade" id="modalAprovar{{ s.id }}" tabindex="-1">
               <div class="modal-dialog">
                 <div class="modal-content">
@@ -61,7 +82,8 @@
                     {% if s.observacao %}
                     <p class="mb-2"><strong>Obs. colaborador:</strong> {{ s.observacao }}</p>
                     {% endif %}
-                    <form method="POST" action="{{ url_for('meu_rh.ferias_aprovar', id=s.id) }}" id="formAprovar{{ s.id }}">
+                    <form method="POST" action="{{ url_for('meu_rh.ferias_aprovar', id=s.id) }}"
+                          id="formAprovar{{ s.id }}">
                       <div class="mb-3">
                         <label class="form-label small fw-semibold">Observação do gestor</label>
                         <textarea name="observacao_gestor" class="form-control" rows="2"
@@ -83,7 +105,6 @@
                 </div>
               </div>
             </div>
-
             {% endfor %}
           </tbody>
         </table>
@@ -96,34 +117,268 @@
     </div>
   </div>
 
-  <!-- Cadastrar período aquisitivo -->
-  <div class="col-lg-5">
+  {# ── Histórico / Cadastro de Períodos ──────────────────────────────────── #}
+  <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <i class="bi bi-plus-circle me-2" style="color:#8B5CF6"></i>Cadastrar Período Aquisitivo
+        <i class="bi bi-calendar2-range me-2" style="color:#8B5CF6"></i>
+        Períodos Aquisitivos por Colaborador
       </div>
       <div class="card-body">
-        <form method="POST" action="{{ url_for('meu_rh.ferias_novo_periodo') }}" class="row g-3">
+
+        {# Seletor de colaborador #}
+        <form method="GET" action="{{ url_for('meu_rh.ferias_gestao') }}"
+              class="d-flex gap-2 align-items-end mb-4">
+          <div class="flex-grow-1" style="max-width:340px;">
+            <label class="form-label small fw-semibold mb-1">Selecione o colaborador</label>
+            <select name="colab_id" class="form-select form-select-sm"
+                    onchange="this.form.submit()">
+              <option value="">— escolha um colaborador —</option>
+              {% for c in equipe %}
+              <option value="{{ c.id }}"
+                {% if colab_selecionado and colab_selecionado.id == c.id %}selected{% endif %}>
+                {{ c.nome }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
+
+        {% if colab_selecionado %}
+
+        {# ── Períodos existentes ──────────────────────────────────────────── #}
+        {% if periodos_colab %}
+        <h6 class="fw-semibold mb-3" style="font-size:.85rem;color:#1e293b;">
+          Histórico de {{ colab_selecionado.nome }}
+          <span class="badge bg-secondary ms-1" style="font-size:.7rem;">
+            {{ periodos_colab|length }} período(s)
+          </span>
+        </h6>
+
+        <div class="row g-3 mb-4">
+          {% for p in periodos_colab %}
+          {% set pct = ((p.dias_gozados / p.dias_direito) * 100)|int if p.dias_direito > 0 else 0 %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card periodo-card status-{{ p.status }} p-0 h-100">
+              <div class="card-body py-3 px-3">
+
+                {# Cabeçalho do período #}
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <div class="fw-bold" style="font-size:.88rem;">
+                      {{ p.data_inicio.strftime('%d/%m/%Y') }} →
+                      {{ p.data_fim.strftime('%d/%m/%Y') }}
+                    </div>
+                    <small class="text-muted">
+                      Limite: {{ p.data_limite.strftime('%d/%m/%Y') }}
+                    </small>
+                  </div>
+                  <span class="badge
+                    {% if p.status == 'disponivel' %}bg-success
+                    {% elif p.status == 'parcial' %}bg-warning text-dark
+                    {% elif p.status == 'gozado' %}bg-secondary
+                    {% elif p.status == 'vencido' %}bg-danger
+                    {% else %}bg-primary{% endif %}"
+                    style="font-size:.68rem;white-space:nowrap;">
+                    {{ p.status_display }}
+                  </span>
+                </div>
+
+                {# Barra de saldo #}
+                <div class="d-flex justify-content-between mb-1" style="font-size:.75rem;color:#64748b;">
+                  <span>{{ p.dias_gozados }}d gozados</span>
+                  <span>{{ p.dias_saldo }}d de saldo</span>
+                </div>
+                <div class="saldo-bar mb-2">
+                  <div class="saldo-bar-fill
+                    {% if p.status == 'vencido' %}bg-danger{% elif p.status == 'gozado' %}bg-secondary{% endif %}"
+                    style="width:{{ [pct, 100]|min }}%;
+                    {% if p.status not in ('vencido','gozado') %}background:#10B981{% endif %}">
+                  </div>
+                </div>
+
+                {% if p.observacao %}
+                <p class="text-muted mb-2" style="font-size:.75rem;">
+                  <i class="bi bi-chat-left-text me-1"></i>{{ p.observacao }}
+                </p>
+                {% endif %}
+
+                {# Ações #}
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                          style="font-size:.75rem;"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalEditarPeriodo{{ p.id }}">
+                    <i class="bi bi-pencil me-1"></i>Editar
+                  </button>
+                  {% if p.solicitacoes.filter_by(status='aprovada').count() == 0 %}
+                  <form method="POST"
+                        action="{{ url_for('meu_rh.ferias_excluir_periodo', id=p.id) }}"
+                        onsubmit="return confirm('Remover este período? Esta ação não pode ser desfeita.')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
+                            style="font-size:.75rem;">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          {# Modal editar período #}
+          <div class="modal fade" id="modalEditarPeriodo{{ p.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h6 class="modal-title">
+                    Editar Período —
+                    {{ p.data_inicio.strftime('%d/%m/%Y') }} a {{ p.data_fim.strftime('%d/%m/%Y') }}
+                  </h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST"
+                      action="{{ url_for('meu_rh.ferias_editar_periodo', id=p.id) }}">
+                  <div class="modal-body">
+                    <div class="row g-3">
+                      <div class="col-6">
+                        <label class="form-label small fw-semibold">Dias de direito</label>
+                        <input type="number" name="dias_direito" class="form-control"
+                               value="{{ p.dias_direito }}" min="1" max="30">
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label small fw-semibold">Dias já gozados</label>
+                        <input type="number" name="dias_gozados" class="form-control"
+                               value="{{ p.dias_gozados }}" min="0" max="{{ p.dias_direito }}">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label small fw-semibold">
+                          Status
+                          <span class="text-muted fw-normal">(deixe vazio para recalcular)</span>
+                        </label>
+                        <select name="status" class="form-select">
+                          <option value="">— recalcular automaticamente —</option>
+                          {% for val, label in status_opcoes %}
+                          <option value="{{ val }}"
+                            {% if p.status == val %}selected{% endif %}>
+                            {{ label }}
+                          </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label small fw-semibold">Observação</label>
+                        <input type="text" name="observacao" class="form-control"
+                               value="{{ p.observacao or '' }}"
+                               placeholder="Ex.: Período histórico — férias gozadas informalmente">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      <i class="bi bi-check-lg me-1"></i>Salvar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-light border mb-4" style="font-size:.88rem;">
+          <i class="bi bi-info-circle me-2 text-primary"></i>
+          Nenhum período cadastrado para <strong>{{ colab_selecionado.nome }}</strong>.
+          Cadastre o primeiro período abaixo.
+        </div>
+        {% endif %}
+
+        {# ── Cadastrar novo período ────────────────────────────────────────── #}
+        <hr class="my-3">
+        <h6 class="fw-semibold mb-3" style="font-size:.85rem;">
+          <i class="bi bi-plus-circle me-2" style="color:#8B5CF6"></i>
+          Adicionar Período para {{ colab_selecionado.nome }}
+        </h6>
+
+        <form method="POST" action="{{ url_for('meu_rh.ferias_novo_periodo') }}"
+              class="row g-3">
+          <input type="hidden" name="colaborador_id" value="{{ colab_selecionado.id }}">
+
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Início do período <span class="text-danger">*</span></label>
+            <input type="date" name="data_inicio" class="form-control" required>
+            <div class="form-text">Data de admissão ou aniversário do contrato.</div>
+          </div>
+
+          <div class="col-sm-2">
+            <label class="form-label small fw-semibold">Dias de direito</label>
+            <input type="number" name="dias_direito" class="form-control"
+                   value="30" min="1" max="30">
+          </div>
+
+          <div class="col-sm-2">
+            <label class="form-label small fw-semibold">Dias gozados</label>
+            <input type="number" name="dias_gozados" class="form-control"
+                   value="0" min="0" max="30">
+            <div class="form-text">0 para períodos ainda não usufruídos.</div>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Observação</label>
+            <input type="text" name="observacao" class="form-control"
+                   placeholder="Ex.: Período histórico 2022/2023">
+          </div>
+
           <div class="col-12">
-            <label class="form-label small fw-semibold">Colaborador</label>
-            <select name="colaborador_id" class="form-select" required>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>Cadastrar Período
+            </button>
+          </div>
+        </form>
+
+        {% else %}
+        {# Nenhum colaborador selecionado — formulário genérico #}
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Colaborador <span class="text-danger">*</span></label>
+            <select name="colaborador_id" class="form-select" form="formNovoPeriodoGenerico" required>
               <option value="">Selecione…</option>
               {% for c in equipe %}
               <option value="{{ c.id }}">{{ c.nome }}</option>
               {% endfor %}
             </select>
           </div>
+          <div class="col-sm-3">
+            <label class="form-label small fw-semibold">Início do período <span class="text-danger">*</span></label>
+            <input type="date" name="data_inicio" class="form-control"
+                   form="formNovoPeriodoGenerico" required>
+          </div>
+          <div class="col-sm-2">
+            <label class="form-label small fw-semibold">Dias de direito</label>
+            <input type="number" name="dias_direito" class="form-control"
+                   value="30" min="1" max="30" form="formNovoPeriodoGenerico">
+          </div>
+          <div class="col-sm-2">
+            <label class="form-label small fw-semibold">Dias gozados</label>
+            <input type="number" name="dias_gozados" class="form-control"
+                   value="0" min="0" max="30" form="formNovoPeriodoGenerico">
+          </div>
           <div class="col-12">
-            <label class="form-label small fw-semibold">Data de início do período</label>
-            <input type="date" name="data_inicio" class="form-control" required>
-            <small class="text-muted">Geralmente a data de admissão ou aniversário do contrato.</small>
-          </div>
-          <div class="col-12 d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary btn-sm">
-              <i class="bi bi-plus-lg me-1"></i>Cadastrar
+            <button type="submit" form="formNovoPeriodoGenerico" class="btn btn-primary btn-sm">
+              <i class="bi bi-plus-lg me-1"></i>Cadastrar Período
             </button>
+            <small class="text-muted ms-2">
+              Ou selecione um colaborador acima para ver o histórico completo primeiro.
+            </small>
           </div>
-        </form>
+        </div>
+        <form id="formNovoPeriodoGenerico" method="POST"
+              action="{{ url_for('meu_rh.ferias_novo_periodo') }}"></form>
+        {% endif %}
+
       </div>
     </div>
   </div>
